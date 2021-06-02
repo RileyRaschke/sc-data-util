@@ -1,0 +1,10 @@
+sc-data-util
+sc-data-util.yaml
+etc/*
+*.swp
+credentials.env
+sc-data-util.exe
+sc-data-util.exe.yaml
+*.log
+*.err
+data/*
