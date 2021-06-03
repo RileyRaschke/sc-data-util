@@ -1,5 +1,9 @@
 package scid
 
+/**
+* Spec: https://www.sierrachart.com/index.php?page=doc/IntradayDataFileFormat.html
+*/
+
 import (
     "bytes"
     "encoding/binary"
@@ -8,14 +12,16 @@ import (
     "fmt"
 )
 
+// Not sure about these constants yet...
+const SINGLE_TRADE_WITH_BID_ASK = float32(0.0)
+const FIRST_SUB_TRADE_OF_UNBUNDLED_TRADE = float32(-1.99900095e+37)
+const LAST_SUB_TRADE_OF_UNBUNDLED_TRADE = float32(-1.99900197e+37)
+
 /*
 * 40 bytes total (320 bits)
 */
 type IntradayRecord struct {
     /*
-    SINGLE_TRADE_WITH_BID_ASK float32
-    FIRST_SUB_TRADE_OF_UNBUNDLED_TRADE float32
-    LAST_SUB_TRADE_OF_UNBUNDLED_TRADE float32
     */
     DateTime SCDateTimeMS
 

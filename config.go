@@ -16,6 +16,7 @@ var (
     envPrefix = "SCID_UTIL"
     configSearchPaths = []string {".", "./etc", "$HOME/.sc-data-util/", "$HOME/etc", "/etc"}
     genConfig = getopt.BoolLong("genconfig", 'x', "Write example config to \"./" + yamlFile + "\"")
+    symbol = getopt.StringLong("symbol", 's', "Symbol to operate on")
 )
 
 func init() {
@@ -28,23 +29,17 @@ func init() {
     for _, p := range configSearchPaths {
         viper.AddConfigPath(p)
     }
+
+    viper.SetDefault("data.dir", "data")
     viper.SetDefault("log.level", "TRACE")
     viper.SetDefault("log.file", "")
-    /*
-    viper.SetDefault("dtc.Host", "127.0.0.1")
-    viper.SetDefault("dtc.Port", "11099")
-    viper.SetDefault("dtc.HistPort", "11098")
-    viper.SetDefault("dtc.Username", "")
-    viper.SetDefault("dtc.Password", "")
-    viper.SetDefault("dtc.Reconnect", false)
-    */
 
     getopt.SetUsage(func() { usage() })
     getopt.Parse()
 
     if *genConfig {
         configWrite()
-        os.Exit(1)
+        os.Exit(0)
         return
     }
 
@@ -55,7 +50,7 @@ func init() {
             //os.Exit(1)
         } else {
             log.Fatalf("Failed to parse config: %v\n", err)
-            os.Exit(0)
+            os.Exit(1)
         }
     }
 
@@ -69,6 +64,7 @@ func configWrite(){
 
 Alternatively, set the following environment variables:
 
+export ` + envPrefix + `_DATA_DIR='data'
 export ` + envPrefix + `_LOG_LEVEL='TRACE'
 export ` + envPrefix + `_LOG_FILE='sc-data-util.log'
 `)

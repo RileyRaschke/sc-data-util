@@ -23,6 +23,9 @@ func init() {
 }
 
 func main() {
+}
+
+func fromStdIn() {
     reader := bufio.NewReader(os.Stdin)
     for{
         peekHeader, err := reader.Peek(4)
@@ -30,17 +33,17 @@ func main() {
             break;
         }
         if string(peekHeader) == "SCID" {
-            headerBytes := make([]byte, 56)
+            headerBytes := make([]byte, scid.SCID_HEADER_SIZE_BYTES)
             bytesRead, err := io.ReadFull( reader, headerBytes )
-            if bytesRead != 56 || err != nil {
+            if bytesRead != scid.SCID_HEADER_SIZE_BYTES || err != nil {
                 log.Errorf("Failed to read intraday data: %v", err)
             }
             header := scid.IntradayHeaderFromBytes( headerBytes )
             fmt.Printf("Got header: %v\n", header)
         } else {
-            raw_scid_record := make([]byte, 40)
+            raw_scid_record := make([]byte, scid.SCID_RECORD_SIZE_BYTES)
             bytesRead, err := io.ReadFull( reader, raw_scid_record)
-            if bytesRead != 40 || err != nil {
+            if bytesRead != scid.SCID_RECORD_SIZE_BYTES || err != nil {
                 log.Errorf("Failed to read intraday data: %v", err)
             }
             idRec := scid.IntradayRecordFromBytes( raw_scid_record )

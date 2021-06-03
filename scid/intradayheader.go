@@ -1,5 +1,9 @@
 package scid
 
+/**
+* Spec: https://www.sierrachart.com/index.php?page=doc/IntradayDataFileFormat.html
+*/
+
 import (
     "bytes"
     "encoding/binary"
