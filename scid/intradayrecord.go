@@ -21,9 +21,7 @@ const LAST_SUB_TRADE_OF_UNBUNDLED_TRADE = float32(-1.99900197e+37)
 * 40 bytes total (320 bits)
 */
 type IntradayRecord struct {
-    /*
-    */
-    DateTime SCDateTimeMS
+    DateTime SCDateTimeMS // 8
 
     Open float32 // 4
     High float32 // 4

@@ -16,7 +16,7 @@ var (
     envPrefix = "SCID_UTIL"
     configSearchPaths = []string {".", "./etc", "$HOME/.sc-data-util/", "$HOME/etc", "/etc"}
     genConfig = getopt.BoolLong("genconfig", 'x', "Write example config to \"./" + yamlFile + "\"")
-    symbol = getopt.StringLong("symbol", 's', "Symbol to operate on")
+    symbol = getopt.StringLong("symbol", 's', "", "Symbol to operate on (required)")
 )
 
 func init() {
@@ -41,6 +41,11 @@ func init() {
         configWrite()
         os.Exit(0)
         return
+    }
+
+    if *symbol == "" {
+        usage( fmt.Sprintf("\nTry: %s --genconfig\n", me) )
+        os.Exit(1)
     }
 
     if err := viper.ReadInConfig(); err != nil {

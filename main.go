@@ -11,7 +11,7 @@ import (
     //"syscall"
     log "github.com/sirupsen/logrus"
     "github.com/pborman/getopt/v2"
-    //"github.com/spf13/viper"
+    "github.com/spf13/viper"
     "github.com/RileyR387/sc-data-util/scid"
 )
 
@@ -23,6 +23,21 @@ func init() {
 }
 
 func main() {
+    fmt.Printf("Symbol: %v\n", *symbol )
+
+    dataFile := viper.GetString("data.dir") + "/" + strings.ToUpper(*symbol) + ".scid"
+
+    r, err := scid.ReaderFromFile( dataFile )
+    if err != nil {
+        fmt.Printf("Failed to open file '%v' with error: %v", dataFile, err)
+    }
+    for {
+        rec, err := r.NextRecord()
+        if err == io.EOF {
+            break
+        }
+        //fmt.Printf("%v\n", rec )
+    }
 }
 
 func fromStdIn() {
