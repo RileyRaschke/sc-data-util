@@ -30,13 +30,14 @@ func main() {
     r, err := scid.ReaderFromFile( dataFile )
     if err != nil {
         fmt.Printf("Failed to open file '%v' with error: %v", dataFile, err)
+        os.Exit(1)
     }
     for {
         rec, err := r.NextRecord()
         if err == io.EOF {
             break
         }
-        //fmt.Printf("%v\n", rec )
+        fmt.Printf("%v\n", rec )
     }
 }
 
