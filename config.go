@@ -16,7 +16,8 @@ var (
     envPrefix = "SCID_UTIL"
     configSearchPaths = []string {".", "./etc", "$HOME/.sc-data-util/", "$HOME/etc", "/etc"}
     genConfig = getopt.BoolLong("genconfig", 'x', "Write example config to \"./" + yamlFile + "\"")
-    symbol = getopt.StringLong("symbol", 's', "", "Symbol to operate on (required)")
+    stdIn = getopt.BoolLong("stdin", 'i', "Read data from STDIN")
+    symbol = getopt.StringLong("symbol", 's', "", "Symbol to operate on (required, unless `-i`)")
 )
 
 func init() {
@@ -43,8 +44,8 @@ func init() {
         return
     }
 
-    if *symbol == "" {
-        usage( fmt.Sprintf("\nTry: %s --genconfig\n", me) )
+    if *symbol == "" && !*stdIn {
+        usage( fmt.Sprintf("\nNo input or symbol provided\n\nTry: %s --genconfig\n", me) )
         os.Exit(1)
     }
 
