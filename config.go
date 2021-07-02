@@ -15,9 +15,12 @@ var (
     yamlFile = fmt.Sprintf("%s.yaml", me)
     envPrefix = "SCID_UTIL"
     configSearchPaths = []string {".", "./etc", "$HOME/.sc-data-util/", "$HOME/etc", "/etc"}
+
+    stdIn = getopt.BoolLong("stdin", 'i', "Read data from STDIN, Dump to STDOUT. Disables most other options.")
     genConfig = getopt.BoolLong("genconfig", 'x', "Write example config to \"./" + yamlFile + "\"")
-    stdIn = getopt.BoolLong("stdin", 'i', "Read data from STDIN")
     symbol = getopt.StringLong("symbol", 's', "", "Symbol to operate on (required, unless `-i`)")
+    startUnixTime = getopt.Int64Long("startUnixTime", 0, 0, "Export Starting at unix time")
+    endUnixTime   = getopt.Int64Long("endUnixTime", 0, 0, "End export at unix time")
 )
 
 func init() {
@@ -42,6 +45,12 @@ func init() {
         configWrite()
         os.Exit(0)
         return
+    }
+
+    if *stdIn && (*symbol != "" || *startUnixTime != 0 || *endUnixTime != 0) {
+        usage( fmt.Sprintf("\nMost options do not work with --stdin input!!\n\n" +
+        "Try: %s --genconfig for data directory configuration options.\n", me) )
+        os.Exit(1)
     }
 
     if *symbol == "" && !*stdIn {

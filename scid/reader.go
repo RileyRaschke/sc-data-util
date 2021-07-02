@@ -42,12 +42,14 @@ func ReaderFromFile(file interface{}) (*ScidReader, error){
         if err != nil {
             return nil, err
         }
+        log.Infof("Opened: %v", filePath)
     } else {
         fInfo, err := fh.Stat()
         if err != nil {
             return nil, err
         }
         filePath = fInfo.Name()
+        log.Infof("Opened: %v", filePath)
     }
     reader := bufio.NewReader( fh )
 
@@ -91,8 +93,20 @@ func (sr *ScidReader) AsReader() (io.Reader) {
     return *sr
 }
 
+func (sr *ScidReader) PeekRecord() (*IntradayRecord, error) {
+    raw_scid_record := make([]byte, SCID_RECORD_SIZE_BYTES)
+    r := bufio.NewReader(sr.fileHandle)
+    raw_scid_record, err := r.Peek(SCID_RECORD_SIZE_BYTES)
+    if err != nil {
+        return nil, err
+    }
+    return IntradayRecordFromBytes( raw_scid_record ), nil
+}
+
 func (sr *ScidReader) NextRecord() (*IntradayRecord, error) {
     raw_scid_record := make([]byte, SCID_RECORD_SIZE_BYTES)
+    //r := bufio.NewReader(sr.fileHandle)
+    //bytesRead, err := io.ReadFull( r, raw_scid_record)
     bytesRead, err := io.ReadFull( sr.Reader, raw_scid_record)
     if err != nil {
         return nil, err
@@ -111,3 +125,76 @@ func (sr *ScidReader) Append(x []*IntradayRecord) (err error) {
     return nil
 }
 
+func (sr *ScidReader) JumpTo(t time.Time) {
+    sr.SeekTo(NewSCDateTimeMs(t))
+}
+
+func (sr *ScidReader) JumpToUnix(t int64) {
+    sr.SeekTo(SCDateTimeMs_fromUnix(t))
+}
+
+func (sr *ScidReader) PeekRecordAt(position int64) (*IntradayRecord, error) {
+    p := position*int64(SCID_RECORD_SIZE_BYTES) + int64(SCID_HEADER_SIZE_BYTES)
+    sr.fileHandle.Seek(p, 0)
+    return sr.PeekRecord()
+}
+func (sr *ScidReader) RecordAt(position int64) (*IntradayRecord, error) {
+    p := position*int64(SCID_RECORD_SIZE_BYTES) + int64(SCID_HEADER_SIZE_BYTES)
+    sr.fileHandle.Seek(p, 0)
+    return sr.NextRecord()
+}
+
+func (sr *ScidReader) SeekTo(t SCDateTimeMS) {
+    fStat, err := sr.fileHandle.Stat()
+    if err != nil {
+        log.Warnf("File stat had error: %v", err)
+    }
+    size := fStat.Size() - int64(SCID_HEADER_SIZE_BYTES)
+    if x:= size % int64(SCID_RECORD_SIZE_BYTES); x != 0 {
+        log.Warnf("Uneven data block detected! Found %v extra bytes", x)
+    }
+
+    var recMid int64
+    recBegin := int64(0)
+    recEnd := size/int64(SCID_RECORD_SIZE_BYTES)
+    log.Infof("Found %v records, searching for %v", recEnd, t)
+    // binary search
+    for {
+        if recEnd < recBegin {
+            r, err := sr.PeekRecordAt(recMid)
+            if err != nil {
+                log.Warnf("Error peeking after seeking: %v", err)
+            }
+            if r.DateTime < t {
+                recMid += 1
+            }
+            break
+        }
+        recMid = recBegin+((recEnd-recBegin)/2)
+        r, err := sr.PeekRecordAt(recMid)
+        if err != nil {
+            log.Warnf("Error peeking after seeking: %v", err)
+        }
+        log.Debugf("Begin: %10v, Middle: %10v, End %10v - Time: %v", recBegin, recMid, recEnd, r.DateTime)
+        if r.DateTime == t {
+            //sr.Reader = bufio.NewReader(sr.fileHandle)
+            break
+        } else if r.DateTime >= t {
+            recEnd = recMid-1
+        } else {
+            recBegin = recMid+1
+        }
+    }
+    p := recMid*int64(SCID_RECORD_SIZE_BYTES) + int64(SCID_HEADER_SIZE_BYTES)
+    sr.fileHandle.Seek(p, 0)
+    sr.Reader = bufio.NewReader(sr.fileHandle)
+}
+
+/*
+func (sr *ScidReader) PriorRecord() *IntradayRecord {
+    sr.fileHandle.Seek(int64(SCID_RECORD_SIZE_BYTES*-2), 1)
+    r, _ := sr.NextRecord()
+    sr.NextRecord()
+    return r
+}
+*/

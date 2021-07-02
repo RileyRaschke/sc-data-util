@@ -24,6 +24,10 @@ func (x SCDateTimeMS) Time() (time.Time) {
 }
 func (x SCDateTimeMS) String() (string){
     return fmt.Sprintf("%v", x.Time().UTC())
-    //return fmt.Sprintf("%v", x.UnixTime() )
-    //return fmt.Sprintf("%v", int64(x) )
+}
+func NewSCDateTimeMs(t time.Time) SCDateTimeMS {
+    return SCDateTimeMS((t.Unix()-SC_EPOCH_OFFSET)*int64(1000000) + int64((t.Nanosecond()/1000)))
+}
+func SCDateTimeMs_fromUnix(unixTime int64) SCDateTimeMS {
+    return NewSCDateTimeMs( time.Unix(unixTime, 0) )
 }

@@ -3,13 +3,13 @@ package main
 import (
     "fmt"
     "io"
-    "bufio"
+    //"bufio"
     "os"
     "strings"
     //"os/signal"
     //"time"
     //"syscall"
-    log "github.com/sirupsen/logrus"
+    //log "github.com/sirupsen/logrus"
     "github.com/pborman/getopt/v2"
     "github.com/spf13/viper"
     "github.com/RileyR387/sc-data-util/scid"
@@ -23,15 +23,22 @@ func main() {
     fmt.Printf("Symbol: %v\n", *symbol )
     var r *scid.ScidReader
     var err error
-    dataFile := viper.GetString("data.dir") + "/" + strings.ToUpper(*symbol) + ".scid"
     if *stdIn {
         r, err = scid.ReaderFromFile( os.Stdin )
+        if err != nil {
+            fmt.Printf("Failed to open os.Stdin with error: %v", err)
+            os.Exit(1)
+        }
     } else {
+        dataFile := viper.GetString("data.dir") + "/" + strings.ToUpper(*symbol) + ".scid"
         r, err = scid.ReaderFromFile( dataFile )
+        if err != nil {
+            fmt.Printf("Failed to open file '%v' with error: %v", dataFile, err)
+            os.Exit(1)
+        }
     }
-    if err != nil {
-        fmt.Printf("Failed to open file '%v' with error: %v", dataFile, err)
-        os.Exit(1)
+    if *startUnixTime != 0 {
+        r.JumpToUnix(*startUnixTime)
     }
     for {
         rec, err := r.NextRecord()
@@ -61,3 +68,4 @@ OPTIONS
 
     os.Exit(1)
 }
+
