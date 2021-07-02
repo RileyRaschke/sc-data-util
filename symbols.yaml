@@ -1,0 +1,53 @@
+
+F.US.EP:
+  desc: "E-Mini S&P"
+  monthCodes: ["H","M","U","Z"]
+
+F.US.MES:
+  desc: "Micro S&P"
+  monthCodes: ["H","M","U","Z"]
+
+F.US.ULA:
+  desc: "Ultra Bond"
+  monthCodes: ["H","M","U","Z"]
+
+F.US.TYA:
+  desc: "10 Year Treasury"
+  monthCodes: ["H","M","U","Z"]
+
+F.US.FVA:
+  desc: "5 Year Treasury"
+  monthCodes: ["H","M","U","Z"]
+
+F.US.CLE:
+  desc: "WTI Crude Oil"
+  monthCodes: ["F","G","H","J","K","M","N","Q","U","V","X","Z"]
+
+F.US.EQM:
+  desc: "E-Mini WTI Crude Oil"
+  monthCodes: ["F","G","H","J","K","M","N","Q","U","V","X","Z"]
+
+F.US.MCL:
+  desc: "Micro WTI Crude Oil"
+  monthCodes: ["F","G","H","J","K","M","N","Q","U","V","X","Z"]
+
+F.US.BTC:
+  desc: "Bitcoin Futures"
+  monthCodes: ["F","G","H","J","K","M","N","Q","U","V","X","Z"]
+
+F.US.MBT:
+  desc: "Micro Bitcoin Futures"
+  monthCodes: ["F","G","H","J","K","M","N","Q","U","V","X","Z"]
+
+F.US.ETH:
+  desc: "Ether Futures"
+  monthCodes: ["F","G","H","J","K","M","N","Q","U","V","X","Z"]
+
+F.US.ZSE:
+  desc: "Soybeans"
+  monthCodes: ["F","G","H","J","K","M","N","Q","U","V","X","Z"]
+
+F.US.XBN:
+  desc: "E-Mini Soybeans"
+  monthCodes: ["F","G","H","J","K","M","N","Q","U","V","X","Z"]
+
