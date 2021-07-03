@@ -1,4 +1,5 @@
 sc-data-util
+*.csv
 sc-data-util.yaml
 etc/*
 *.swp

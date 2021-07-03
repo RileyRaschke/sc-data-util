@@ -4,6 +4,7 @@ import (
     "os"
     "strings"
     "fmt"
+    "time"
     "path/filepath"
     log "github.com/sirupsen/logrus"
     "github.com/pborman/getopt/v2"
@@ -19,8 +20,11 @@ var (
     stdIn = getopt.BoolLong("stdin", 'i', "Read data from STDIN, Dump to STDOUT. Disables most other options.")
     genConfig = getopt.BoolLong("genconfig", 'x', "Write example config to \"./" + yamlFile + "\"")
     symbol = getopt.StringLong("symbol", 's', "", "Symbol to operate on (required, unless `-i`)")
+    barSize = getopt.StringLong("barSize", 'b', "", "Export as bars")
+    //csvBars = getopt.BoolLong("csv", 0, "1m", "Bars as JSON")
+    jsonBars = getopt.BoolLong("json", 0, "1m", "Bars as JSON")
     startUnixTime = getopt.Int64Long("startUnixTime", 0, 0, "Export Starting at unix time")
-    endUnixTime   = getopt.Int64Long("endUnixTime", 0, 0, "End export at unix time")
+    endUnixTime   = getopt.Int64Long("endUnixTime", 0, time.Now().Unix(), "End export at unix time")
 )
 
 func init() {

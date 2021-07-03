@@ -49,7 +49,7 @@ func ReaderFromFile(file interface{}) (*ScidReader, error){
             return nil, err
         }
         filePath = fInfo.Name()
-        log.Infof("Opened: %v", filePath)
+        log.Infof("Reading %v", filePath)
     }
     reader := bufio.NewReader( fh )
 

@@ -2,14 +2,14 @@ package main
 
 import (
     "fmt"
-    "io"
+    //"io"
     //"bufio"
     "os"
     "strings"
     //"os/signal"
-    //"time"
+    "time"
     //"syscall"
-    //log "github.com/sirupsen/logrus"
+    log "github.com/sirupsen/logrus"
     "github.com/pborman/getopt/v2"
     "github.com/spf13/viper"
     "github.com/RileyR387/sc-data-util/scid"
@@ -30,6 +30,7 @@ func main() {
             os.Exit(1)
         }
     } else {
+        // TODO: test for specified file first? Then ext?
         dataFile := viper.GetString("data.dir") + "/" + strings.ToUpper(*symbol) + ".scid"
         r, err = scid.ReaderFromFile( dataFile )
         if err != nil {
@@ -40,13 +41,14 @@ func main() {
     if *startUnixTime != 0 {
         r.JumpToUnix(*startUnixTime)
     }
-    for {
-        rec, err := r.NextRecord()
-        if err == io.EOF {
-            break
-        }
-        //rec.TotalVolume += 1
-        fmt.Printf("%v\n", rec )
+    // Dump Raw Ticks
+    if *barSize == "" {
+        log.Info("Dumping ticks to stdout")
+        scid.DumpRawTicks(os.Stdout, r)
+    } else {
+        // 15m 1h 2d 4h 32t 3200t
+        log.Infof("Dumping %v bars to stdout", *barSize)
+        scid.DumpBarCsv(os.Stdout, r, time.Unix(*startUnixTime,0), time.Unix(*endUnixTime,0), *barSize )
     }
 }
 
