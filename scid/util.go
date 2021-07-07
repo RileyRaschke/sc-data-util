@@ -54,7 +54,7 @@ type CsvRow struct {
 
 func (x CsvRow) String() string {
     return fmt.Sprintf("%v,%v,%v,%v,%v,%v,%v,%v,%v,%v,%v",
-         x.DateTime.Format("2006/01/02"),
+         x.DateTime.Format("2006/1/2"),
          x.DateTime.Format("15:04:05"),
          x.Open,
          x.High,
@@ -124,7 +124,7 @@ func DumpBarCsv(outFile interface{}, r *ScidReader, startTime time.Time, endTime
             if rec.High > row.High {
                 row.High = rec.High
             }
-            if rec.Low > row.Low {
+            if rec.Low < row.Low {
                 row.Low = rec.Low
             }
             row.Close = rec.Close

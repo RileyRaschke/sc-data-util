@@ -20,7 +20,7 @@ var (
 )
 
 func main() {
-    fmt.Printf("Symbol: %v\n", *symbol )
+    log.Infof("Symbol: %v\n", *symbol )
     var r *scid.ScidReader
     var err error
     if *stdIn {
