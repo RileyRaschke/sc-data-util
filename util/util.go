@@ -6,6 +6,10 @@ import (
 	"os"
 )
 
+var (
+	Version = "undefined"
+)
+
 func WriteBuffer(outFile interface{}) (*bufio.Writer, error) {
 	var err error
 	var fh *os.File

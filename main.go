@@ -11,13 +11,14 @@ import (
 	//"syscall"
 	"github.com/RileyR387/sc-data-util/csv"
 	"github.com/RileyR387/sc-data-util/scid"
+	"github.com/RileyR387/sc-data-util/util"
 	"github.com/pborman/getopt/v2"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
 
 var (
-	Version = "undefined"
+	Version = util.Version
 )
 
 func main() {
@@ -64,12 +65,15 @@ func usage(msg ...string) {
 	u := strings.SplitAfterN(b.String(), "\n", 2)
 	fmt.Printf(`Usage: %s [OPTIONS]
 
-Activity log is written to Stderr
-Data is written to Stdout
+Notes:
+ - Config (%v) can reside in %v
+ - Data is written to Stdout
+ - Activity log is written to Stderr
+ - startUnixTime options sets first bar start time
 
 OPTIONS
 %s
-`, me, u[1])
+`, me, yamlFile, configSearchPaths, u[1])
 
 	os.Exit(1)
 }

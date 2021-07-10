@@ -20,23 +20,28 @@ Some configuration is required, see usage for `--genconfig` option details.
 
 ### Usage
 ```txt
+Try: sc-data-util --genconfig
+
 Usage: sc-data-util [OPTIONS]
 
-Activity log is written to Stderr
-Data is written to Stdout
+Notes:
+ - Config (sc-data-util.yaml) can reside in [. ./etc $HOME/.sc-data-util/ $HOME/etc /etc]
+ - Data is written to Stdout
+ - Activity log is written to Stderr
+ - startUnixTime options sets first bar start time
 
 OPTIONS
  -b, --barSize=value
-                  Export as bars
+                  Export as bars of size: [10s, 2m, 4h]
      --endUnixTime=value
-                  End export at unix time [1625891198]
+                  End export at unix time [1625893664]
  -i, --stdin      Read data from STDIN, Dump to STDOUT. Disables most other
                   options.
      --startUnixTime=value
                   Export Starting at unix time
  -s, --symbol=value
                   Symbol to operate on (required, unless `-i`)
-     --version    Show version (fd0b752-dirty)
+     --version    Show version (d875a56-dirty)
  -x, --genconfig  Write example config to "./sc-data-util.yaml"
 ```
 

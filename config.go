@@ -21,7 +21,7 @@ var (
 	stdIn     = getopt.BoolLong("stdin", 'i', "Read data from STDIN, Dump to STDOUT. Disables most other options.")
 	genConfig = getopt.BoolLong("genconfig", 'x', "Write example config to \"./"+yamlFile+"\"")
 	symbol    = getopt.StringLong("symbol", 's', "", "Symbol to operate on (required, unless `-i`)")
-	barSize   = getopt.StringLong("barSize", 'b', "", "Export as bars")
+	barSize   = getopt.StringLong("barSize", 'b', "", "Export as bars of size: [10s, 2m, 4h]")
 	//csvBars = getopt.BoolLong("csv", 0, "Bars in CSV")
 	//jsonBars      = getopt.BoolLong("json", 0, "Bars as JSON")
 	startUnixTime = getopt.Int64Long("startUnixTime", 0, 0, "Export Starting at unix time")
