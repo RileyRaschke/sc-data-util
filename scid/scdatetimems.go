@@ -1,33 +1,33 @@
 package scid
 
-import(
-    "fmt"
-    "time"
+import (
+	"fmt"
+	"time"
 )
 
 type SCDateTimeMS int64
 
 const SC_EPOCH_OFFSET = int64(-2209161600)
 
-func (x SCDateTimeMS) UnixTimeMicroSeconds() (int64) {
-    return int64(x)+(SC_EPOCH_OFFSET*1000000)
+func (x SCDateTimeMS) UnixTimeMicroSeconds() int64 {
+	return int64(x) + (SC_EPOCH_OFFSET * 1000000)
 }
 
-func (x SCDateTimeMS) UnixTime() (int64) {
-    return (int64(x)/1000000)+SC_EPOCH_OFFSET
+func (x SCDateTimeMS) UnixTime() int64 {
+	return (int64(x) / 1000000) + SC_EPOCH_OFFSET
 }
 
-func (x SCDateTimeMS) Time() (time.Time) {
-    secs := x.UnixTime()
-    nanoSecs := (int64(x)%1000000)*1000
-    return time.Unix(secs, nanoSecs)
+func (x SCDateTimeMS) Time() time.Time {
+	secs := x.UnixTime()
+	nanoSecs := (int64(x) % 1000000) * 1000
+	return time.Unix(secs, nanoSecs)
 }
-func (x SCDateTimeMS) String() (string){
-    return fmt.Sprintf("%v", x.Time().UTC())
+func (x SCDateTimeMS) String() string {
+	return fmt.Sprintf("%v", x.Time().UTC())
 }
 func NewSCDateTimeMs(t time.Time) SCDateTimeMS {
-    return SCDateTimeMS((t.Unix()-SC_EPOCH_OFFSET)*int64(1000000) + int64((t.Nanosecond()/1000)))
+	return SCDateTimeMS((t.Unix()-SC_EPOCH_OFFSET)*int64(1000000) + int64((t.Nanosecond() / 1000)))
 }
 func SCDateTimeMs_fromUnix(unixTime int64) SCDateTimeMS {
-    return NewSCDateTimeMs( time.Unix(unixTime, 0) )
+	return NewSCDateTimeMs(time.Unix(unixTime, 0))
 }
