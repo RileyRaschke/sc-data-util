@@ -10,17 +10,8 @@ import (
 
 func Test_scidReaderStdIn(t *testing.T) {
 
-	header := &IntradayHeader{
-		//UniqueHeaderId: [4]byte{},
-		HeaderSize:    uint32(56),
-		RecordSize:    uint32(0),
-		Version:       uint16(0),
-		Unused1:       uint16(0),
-		UTCStartIndex: uint32(time.Now().Unix()),
-		Reserve:       [36]byte{},
-	}
+	header := &IntradayHeader{UTCStartIndex: uint32(time.Now().Unix())}
 	copy((*header).UniqueHeaderId[:], "SCID")
-	//fmt.Println(header.UniqueHeaderId)
 
 	tmpfile, err := os.CreateTemp("", "scid-test")
 	if err != nil {
@@ -28,12 +19,9 @@ func Test_scidReaderStdIn(t *testing.T) {
 	}
 	defer os.Remove(tmpfile.Name()) // clean up
 
-	headerBytes := header.ToBytes()
-
-	if _, err := tmpfile.Write(headerBytes); err != nil {
+	if _, err := tmpfile.Write(header.ToBytes()); err != nil {
 		t.Errorf("Failed to write IntradayHeader{} to temp file with error: %v", err)
 	}
-	//fmt.Printf("Wrore header bytes: %v\n", headerBytes)
 	tmpfile.Seek(0, 0)
 
 	oldStdin := os.Stdin

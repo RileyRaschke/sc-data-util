@@ -64,6 +64,21 @@ func DumpBarCsv(outFile interface{}, r *scid.ScidReader, startTime time.Time, en
 		if err != nil {
 			log.Infof("Error returned by `r.NextRecord()`: %v", err)
 		}
+		// support for index style data
+		if rec.High == rec.Low {
+			if rec.High < rec.Open {
+				rec.High = rec.Open
+			}
+			if rec.High < rec.Close {
+				rec.High = rec.Close
+			}
+			if rec.Low > rec.Open || (rec.Open != 0 && rec.Low < 0.5*rec.Open) {
+				rec.Low = rec.Open
+			}
+			if rec.Low > rec.Close || (rec.Close != 0 && rec.Low < 0.5*rec.Close) {
+				rec.Low = rec.Close
+			}
+		}
 		if rec.DateTime >= scdt_nextBar {
 			if row.TotalVolume != 0 {
 				w.WriteString(row.String() + "\n")

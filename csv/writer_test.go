@@ -13,3 +13,11 @@ func Test_example(t *testing.T) {
 		fmt.Print("Stringify'd a CSV Row!\n")
 	}
 }
+
+/**
+* Could be an important one!
+ */
+func Test_NegativePriceAction(t *testing.T) {
+	//row := CsvRow{}
+	fmt.Printf("TODO: Write a test for negative prices action! Many birds one stone.\n")
+}
