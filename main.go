@@ -13,6 +13,7 @@ import (
     "github.com/pborman/getopt/v2"
     "github.com/spf13/viper"
     "github.com/RileyR387/sc-data-util/scid"
+    "github.com/RileyR387/sc-data-util/csv"
 )
 
 var (
@@ -44,11 +45,11 @@ func main() {
     // Dump Raw Ticks
     if *barSize == "" {
         log.Info("Dumping ticks to stdout")
-        scid.DumpRawTicks(os.Stdout, r)
+        csv.DumpRawTicks(os.Stdout, r)
     } else {
         // 15m 1h 2d 4h 32t 3200t
         log.Infof("Dumping %v bars to stdout", *barSize)
-        scid.DumpBarCsv(os.Stdout, r, time.Unix(*startUnixTime,0), time.Unix(*endUnixTime,0), *barSize )
+        csv.DumpBarCsv(os.Stdout, r, time.Unix(*startUnixTime,0), time.Unix(*endUnixTime,0), *barSize )
     }
 }
 

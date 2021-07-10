@@ -1,44 +1,16 @@
-package scid
-
+package csv
 
 import (
     "fmt"
     "io"
-    "os"
-    "bufio"
     "time"
-    //"github.com/RileyR387/sc-data-util/scid"
     log "github.com/sirupsen/logrus"
+    "github.com/RileyR387/sc-data-util/scid"
+    "github.com/RileyR387/sc-data-util/util"
 )
 
-func writeBuffer(outFile interface{}) (*bufio.Writer, error) {
-    var err error
-    var fh *os.File
-    filePath := ""
-    ok := true
-
-    fh, ok = outFile.(*os.File)
-
-    if !ok {
-        filePath = outFile.(string)
-        fh, err = os.Open(filePath)
-        if err != nil {
-            return nil, err
-        }
-        log.Infof("Writing to file: %v", filePath)
-    } else {
-        fInfo, err := fh.Stat()
-        if err != nil {
-            return nil, err
-        }
-        filePath = fInfo.Name()
-        log.Infof("Writing to %v", filePath)
-    }
-
-    return bufio.NewWriter( fh ), err
-}
-
 const CSV_HEADER = string("Date,Time,Open,High,Low,Last,Volume,NumTrades,BidVolume,AskVolume,PriorSettle")
+
 type CsvRow struct {
     DateTime time.Time
     Open float32
@@ -68,15 +40,15 @@ func (x CsvRow) String() string {
      )
 }
 
-func DumpBarCsv(outFile interface{}, r *ScidReader, startTime time.Time, endTime time.Time, barSize string) error {
-    w, err := writeBuffer( outFile )
+func DumpBarCsv(outFile interface{}, r *scid.ScidReader, startTime time.Time, endTime time.Time, barSize string) error {
+    w, err := util.WriteBuffer( outFile )
     if err != nil {
         log.Errorf("Failed to open \"%v\" for writing with error: %v", outFile, err)
     }
     bDuration, err := time.ParseDuration(barSize)
-    scdt_barStart := NewSCDateTimeMs(startTime)
-    scdt_endTime := NewSCDateTimeMs(endTime)
-    scdt_nextBar := NewSCDateTimeMs(startTime.Add(bDuration))
+    scdt_barStart := scid.NewSCDateTimeMs(startTime)
+    scdt_endTime := scid.NewSCDateTimeMs(endTime)
+    scdt_nextBar := scid.NewSCDateTimeMs(startTime.Add(bDuration))
     scdt_duration := scdt_nextBar - scdt_barStart
     scdt_nextBar = scdt_barStart // hacky, but efficient
     var row CsvRow
@@ -138,8 +110,8 @@ func DumpBarCsv(outFile interface{}, r *ScidReader, startTime time.Time, endTime
     return nil
 }
 
-func DumpRawTicks(outFile interface{}, r *ScidReader){
-    w, err := writeBuffer( outFile )
+func DumpRawTicks(outFile interface{}, r *scid.ScidReader){
+    w, err := util.WriteBuffer( outFile )
     if err != nil {
         log.Errorf("Failed to open \"%v\" for writing with error: %v", outFile, err)
     }
@@ -155,4 +127,3 @@ func DumpRawTicks(outFile interface{}, r *ScidReader){
         w.WriteString(fmt.Sprintf("%v\n", rec ))
     }
 }
-
