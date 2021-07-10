@@ -9,3 +9,4 @@ sc-data-util.exe.yaml
 *.log
 *.err
 data/*
+local*.sh
