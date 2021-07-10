@@ -48,6 +48,7 @@ func main() {
 		csv.DumpRawTicks(os.Stdout, r)
 	} else {
 		// 15m 1h 2d 4h 32t 3200t
+		// TODO: Support for days/weeks...
 		log.Infof("Dumping %v bars to stdout", *barSize)
 		csv.DumpBarCsv(os.Stdout, r, time.Unix(*startUnixTime, 0), time.Unix(*endUnixTime, 0), *barSize)
 	}
@@ -61,9 +62,10 @@ func usage(msg ...string) {
 	b := &strings.Builder{}
 	getopt.PrintUsage(b)
 	u := strings.SplitAfterN(b.String(), "\n", 2)
-	fmt.Printf(`Usage: %s
+	fmt.Printf(`Usage: %s [OPTIONS]
 
-Activity log is written to STDERR.
+Activity log is written to Stderr
+Data is written to Stdout
 
 OPTIONS
 %s
