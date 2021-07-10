@@ -13,6 +13,7 @@ import (
 
 var (
     me = filepath.Base(os.Args[0])
+    showVersion   = getopt.BoolLong("version", 0, "Show version ("+Version+")")
     yamlFile = fmt.Sprintf("%s.yaml", me)
     envPrefix = "SCID_UTIL"
     configSearchPaths = []string {".", "./etc", "$HOME/.sc-data-util/", "$HOME/etc", "/etc"}
@@ -47,6 +48,12 @@ func init() {
 
     if *genConfig {
         configWrite()
+        os.Exit(0)
+        return
+    }
+
+    if *showVersion {
+        ShowVersion()
         os.Exit(0)
         return
     }

@@ -12,6 +12,8 @@ import (
     "fmt"
 )
 
+const SCID_RECORD_SIZE_BYTES = int(40)
+
 // Not sure about these constants yet...
 const SINGLE_TRADE_WITH_BID_ASK = float32(0.0)
 const FIRST_SUB_TRADE_OF_UNBUNDLED_TRADE = float32(-1.99900095e+37)

@@ -10,9 +10,6 @@ import (
     log "github.com/sirupsen/logrus"
 )
 
-const SCID_HEADER_SIZE_BYTES = int(56)
-const SCID_RECORD_SIZE_BYTES = int(40)
-
 type ScidDataReader interface {
     io.ReadWriteSeeker
     NextRecord() (*IntradayRecord)
@@ -58,7 +55,8 @@ func ReaderFromFile(file interface{}) (*ScidReader, error){
         return nil, err
     }
     if string(peekHeader) != "SCID" {
-        fmtStr := "Failed to open \"%v\" - \".scid\" header check failed."
+        log.Errorf("Got string: (%v)",string(peekHeader))
+        fmtStr := "Failed to open %v - scid header check failed."
         msg := fmt.Sprintf(fmtStr, filePath)
         log.Error(msg)
         return nil, errors.New(msg)
@@ -125,12 +123,12 @@ func (sr *ScidReader) Append(x []*IntradayRecord) (err error) {
     return nil
 }
 
-func (sr *ScidReader) JumpTo(t time.Time) {
-    sr.SeekTo(NewSCDateTimeMs(t))
+func (sr *ScidReader) JumpTo(t time.Time) (error){
+    return sr.SeekTo(NewSCDateTimeMs(t))
 }
 
-func (sr *ScidReader) JumpToUnix(t int64) {
-    sr.SeekTo(SCDateTimeMs_fromUnix(t))
+func (sr *ScidReader) JumpToUnix(t int64) (error) {
+    return sr.SeekTo(SCDateTimeMs_fromUnix(t))
 }
 
 func (sr *ScidReader) PeekRecordAt(position int64) (*IntradayRecord, error) {
@@ -144,7 +142,7 @@ func (sr *ScidReader) RecordAt(position int64) (*IntradayRecord, error) {
     return sr.NextRecord()
 }
 
-func (sr *ScidReader) SeekTo(t SCDateTimeMS) {
+func (sr *ScidReader) SeekTo(t SCDateTimeMS) (error){
     fStat, err := sr.fileHandle.Stat()
     if err != nil {
         log.Warnf("File stat had error: %v", err)
@@ -152,6 +150,10 @@ func (sr *ScidReader) SeekTo(t SCDateTimeMS) {
     size := fStat.Size() - int64(SCID_HEADER_SIZE_BYTES)
     if x:= size % int64(SCID_RECORD_SIZE_BYTES); x != 0 {
         log.Warnf("Uneven data block detected! Found %v extra bytes", x)
+    }
+    if size == 0 {
+        log.Warnf("Empty data file!")
+        return io.EOF
     }
 
     var recMid int64
@@ -188,6 +190,7 @@ func (sr *ScidReader) SeekTo(t SCDateTimeMS) {
     p := recMid*int64(SCID_RECORD_SIZE_BYTES) + int64(SCID_HEADER_SIZE_BYTES)
     sr.fileHandle.Seek(p, 0)
     sr.Reader = bufio.NewReader(sr.fileHandle)
+    return nil
 }
 
 /*

@@ -17,7 +17,7 @@ import (
 )
 
 var (
-    version = "undefined"
+    Version = "undefined"
 )
 
 func main() {
@@ -70,5 +70,10 @@ OPTIONS
 `, me, u[1])
 
     os.Exit(1)
+}
+
+func ShowVersion() {
+    fmt.Printf("%v %v\n", me, Version)
+    os.Exit(0)
 }
 

@@ -10,6 +10,8 @@ import (
     log "github.com/sirupsen/logrus"
 )
 
+const SCID_HEADER_SIZE_BYTES = int(56)
+
 /**
 * 56 bytes == 448 bits
 * 1 byte = 8 bits
@@ -32,3 +34,8 @@ func IntradayHeaderFromBytes(b []byte) (x *IntradayHeader) {
     return x
 }
 
+func (h *IntradayHeader) ToBytes() []byte {
+    var bin_buf bytes.Buffer
+    binary.Write(&bin_buf, binary.LittleEndian, h)
+    return bin_buf.Bytes()
+}
