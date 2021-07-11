@@ -2,25 +2,19 @@ package csv
 
 import (
 	"fmt"
+	"io"
+	"time"
+
 	"github.com/RileyR387/sc-data-util/scid"
 	"github.com/RileyR387/sc-data-util/util"
 	log "github.com/sirupsen/logrus"
-	"io"
-	"time"
 )
 
 const CSV_HEADER = string("Date,Time,Open,High,Low,Last,Volume,NumTrades,BidVolume,AskVolume,PriorSettle")
 
 type CsvRow struct {
+	scid.IntradayRecord
 	DateTime    time.Time
-	Open        float32
-	High        float32
-	Low         float32
-	Close       float32
-	NumTrades   uint32
-	TotalVolume uint32
-	BidVolume   uint32
-	AskVolume   uint32
 	PriorSettle float32
 }
 
@@ -79,16 +73,16 @@ func DumpBarCsv(outFile interface{}, r *scid.ScidReader, startTime time.Time, en
 				rec.Low = rec.Close
 			}
 		}
-		if rec.DateTime >= scdt_nextBar {
+		if rec.DateTimeSC >= scdt_nextBar {
 			if row.TotalVolume != 0 {
 				w.WriteString(row.String() + "\n")
 			}
-			if rec.DateTime >= scdt_endTime {
+			if rec.DateTimeSC >= scdt_endTime {
 				break
 			}
 			scdt_barStart = scdt_nextBar
 			for {
-				if scdt_nextBar > rec.DateTime {
+				if scdt_nextBar > rec.DateTimeSC {
 					break
 				} else {
 					scdt_barStart = scdt_nextBar
@@ -105,7 +99,7 @@ func DumpBarCsv(outFile interface{}, r *scid.ScidReader, startTime time.Time, en
 			row.TotalVolume = rec.TotalVolume
 			row.BidVolume = rec.BidVolume
 			row.AskVolume = rec.AskVolume
-			//row.PriorSettle = getPriorSettle()
+			//row.PriorSettle = getPriorSettle()? Nah.. Need to track in loop
 			//barStart = scdt_nextBar
 		} else {
 			if rec.High > row.High {

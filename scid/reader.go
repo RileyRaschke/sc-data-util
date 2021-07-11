@@ -4,10 +4,11 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
-	log "github.com/sirupsen/logrus"
 	"io"
 	"os"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 )
 
 type ScidDataReader interface {
@@ -167,7 +168,7 @@ func (sr *ScidReader) SeekTo(t SCDateTimeMS) error {
 			if err != nil {
 				log.Warnf("Error peeking after seeking: %v", err)
 			}
-			if r.DateTime < t {
+			if r.DateTimeSC < t {
 				recMid += 1
 			}
 			break
@@ -177,11 +178,11 @@ func (sr *ScidReader) SeekTo(t SCDateTimeMS) error {
 		if err != nil {
 			log.Warnf("Error peeking after seeking: %v", err)
 		}
-		log.Debugf("Begin: %10v, Middle: %10v, End %10v - Time: %v", recBegin, recMid, recEnd, r.DateTime)
-		if r.DateTime == t {
+		log.Debugf("Begin: %10v, Middle: %10v, End %10v - Time: %v", recBegin, recMid, recEnd, r.DateTimeSC)
+		if r.DateTimeSC == t {
 			//sr.Reader = bufio.NewReader(sr.fileHandle)
 			break
-		} else if r.DateTime >= t {
+		} else if r.DateTimeSC >= t {
 			recEnd = recMid - 1
 		} else {
 			recBegin = recMid + 1

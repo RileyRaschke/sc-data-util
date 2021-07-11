@@ -7,7 +7,9 @@ package scid
 import (
 	"bytes"
 	"encoding/binary"
+
 	log "github.com/sirupsen/logrus"
+
 	//"text/template"
 	"fmt"
 )
@@ -23,7 +25,7 @@ const LAST_SUB_TRADE_OF_UNBUNDLED_TRADE = float32(-1.99900197e+37)
 * 40 bytes total (320 bits)
  */
 type IntradayRecord struct {
-	DateTime SCDateTimeMS // 8
+	DateTimeSC SCDateTimeMS // 8
 
 	Open  float32 // 4
 	High  float32 // 4
@@ -55,7 +57,7 @@ func (x *IntradayRecord) String() string {
 		"\"tv\":\"%v\", "+
 		"\"bv\":\"%v\", "+
 		"\"av\":\"%v\""+
-		"}", x.DateTime,
+		"}", x.DateTimeSC,
 		x.Open,
 		x.High,
 		x.Low,
