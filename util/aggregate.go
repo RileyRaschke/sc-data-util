@@ -1,6 +1,5 @@
-package scid
+package util
 
-import (
 /*
    "fmt"
    "os"
@@ -10,7 +9,6 @@ import (
    "time"
    log "github.com/sirupsen/logrus"
 */
-)
 
 func (sr *ScidReader) AggregateBy(bs string) {
 }
