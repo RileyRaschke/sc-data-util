@@ -12,13 +12,13 @@ import (
 
 const CSV_HEADER = string("Date,Time,Open,High,Low,Last,Volume,NumTrades,BidVolume,AskVolume,PriorSettle")
 
-type CsvRow struct {
+type CsvBarRow struct {
 	scid.IntradayRecord
 	DateTime    time.Time
 	PriorSettle float32
 }
 
-func (x CsvRow) String() string {
+func (x CsvBarRow) String() string {
 	return fmt.Sprintf("%v,%v,%v,%v,%v,%v,%v,%v,%v,%v,%v",
 		x.DateTime.Format("2006/1/2"),
 		x.DateTime.Format("15:04:05"),
@@ -45,37 +45,43 @@ func DumpBarCsv(outFile interface{}, r *scid.ScidReader, startTime time.Time, en
 	scdt_nextBar := scid.NewSCDateTimeMs(startTime.Add(bDuration))
 	scdt_duration := scdt_nextBar - scdt_barStart
 	scdt_nextBar = scdt_barStart // hacky, but efficient
-	var row CsvRow
+	var barRow CsvBarRow
 	w.WriteString(CSV_HEADER + "\n")
 	for {
 		rec, err := r.NextRecord()
 		if err == io.EOF {
-			if row.TotalVolume != 0 {
-				w.WriteString(row.String() + "\n")
+			if barRow.TotalVolume != 0 {
+				w.WriteString(barRow.String() + "\n")
 			}
 			break
 		}
 		if err != nil {
 			log.Infof("Error returned by `r.NextRecord()`: %v", err)
 		}
-		// support for index style data
-		if rec.High == rec.Low {
-			if rec.High < rec.Open {
-				rec.High = rec.Open
-			}
-			if rec.High < rec.Close {
-				rec.High = rec.Close
-			}
-			if rec.Low > rec.Open || (rec.Open != 0 && rec.Low < 0.5*rec.Open) {
-				rec.Low = rec.Open
-			}
-			if rec.Low > rec.Close || (rec.Close != 0 && rec.Low < 0.5*rec.Close) {
-				rec.Low = rec.Close
+		if rec.Open == scid.SINGLE_TRADE_WITH_BID_ASK {
+
+		} else if rec.Open == scid.FIRST_SUB_TRADE_OF_UNBUNDLED_TRADE {
+		} else if rec.Open == scid.LAST_SUB_TRADE_OF_UNBUNDLED_TRADE {
+		} else {
+			// support for index style data
+			if rec.High == rec.Low {
+				if rec.High < rec.Open {
+					rec.High = rec.Open
+				}
+				if rec.High < rec.Close {
+					rec.High = rec.Close
+				}
+				if rec.Low > rec.Open || (rec.Open != 0 && rec.Low < 0.5*rec.Open) {
+					rec.Low = rec.Open
+				}
+				if rec.Low > rec.Close || (rec.Close != 0 && rec.Low < 0.5*rec.Close) {
+					rec.Low = rec.Close
+				}
 			}
 		}
 		if rec.DateTimeSC >= scdt_nextBar {
-			if row.TotalVolume != 0 {
-				w.WriteString(row.String() + "\n")
+			if barRow.TotalVolume != 0 {
+				w.WriteString(barRow.String() + "\n")
 			}
 			if rec.DateTimeSC >= scdt_endTime {
 				break
@@ -89,30 +95,22 @@ func DumpBarCsv(outFile interface{}, r *scid.ScidReader, startTime time.Time, en
 					scdt_nextBar += scdt_duration
 				}
 			}
-			row = CsvRow{}
-			row.DateTime = scdt_barStart.Time()
-			row.Open = rec.Close
-			row.High = rec.High
-			row.Low = rec.Low
-			row.Close = rec.Close
-			row.NumTrades = rec.NumTrades
-			row.TotalVolume = rec.TotalVolume
-			row.BidVolume = rec.BidVolume
-			row.AskVolume = rec.AskVolume
-			//row.PriorSettle = getPriorSettle()? Nah.. Need to track in loop
-			//barStart = scdt_nextBar
+			barRow = CsvBarRow{IntradayRecord: *rec}
+			barRow.DateTime = scdt_barStart.Time()
+			barRow.Open = rec.Close
+			//barRow.PriorSettle = getPriorSettle()? Nah.. Need to track in loop
 		} else {
-			if rec.High > row.High {
-				row.High = rec.High
+			if rec.High > barRow.High {
+				barRow.High = rec.High
 			}
-			if rec.Low < row.Low {
-				row.Low = rec.Low
+			if rec.Low < barRow.Low {
+				barRow.Low = rec.Low
 			}
-			row.Close = rec.Close
-			row.NumTrades += rec.NumTrades
-			row.TotalVolume += rec.TotalVolume
-			row.BidVolume += rec.BidVolume
-			row.AskVolume += rec.AskVolume
+			barRow.Close = rec.Close
+			barRow.NumTrades += rec.NumTrades
+			barRow.TotalVolume += rec.TotalVolume
+			barRow.BidVolume += rec.BidVolume
+			barRow.AskVolume += rec.AskVolume
 		}
 	}
 	w.Flush()

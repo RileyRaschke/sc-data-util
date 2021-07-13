@@ -1,8 +1,10 @@
-.DEFAULT_GOAL := dist
+.DEFAULT_GOAL := all
 
 GO=$(shell which go)
 DISTVER=$(shell git describe --always --dirty --long --tags)
 PKG=$(shell head -1 go.mod | sed 's/^module //')
+
+all: test dist install
 
 test:
 	$(GO) test -v ./scid/... ./csv/... ./util/...

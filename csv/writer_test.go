@@ -6,7 +6,7 @@ import (
 )
 
 func Test_example(t *testing.T) {
-	row := CsvRow{}
+	row := CsvBarRow{}
 	if row.String() == "" {
 		t.Error("Unable to construct and stringify a CSV row!")
 	} else {

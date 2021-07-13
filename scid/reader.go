@@ -137,11 +137,6 @@ func (sr *ScidReader) PeekRecordAt(position int64) (*IntradayRecord, error) {
 	sr.fileHandle.Seek(p, 0)
 	return sr.PeekRecord()
 }
-func (sr *ScidReader) RecordAt(position int64) (*IntradayRecord, error) {
-	p := position*int64(SCID_RECORD_SIZE_BYTES) + int64(SCID_HEADER_SIZE_BYTES)
-	sr.fileHandle.Seek(p, 0)
-	return sr.NextRecord()
-}
 
 func (sr *ScidReader) SeekTo(t SCDateTimeMS) error {
 	fStat, err := sr.fileHandle.Stat()

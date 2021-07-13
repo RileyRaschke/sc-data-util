@@ -7,11 +7,9 @@ package scid
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 
 	log "github.com/sirupsen/logrus"
-
-	//"text/template"
-	"fmt"
 )
 
 const SCID_RECORD_SIZE_BYTES = int(40)
