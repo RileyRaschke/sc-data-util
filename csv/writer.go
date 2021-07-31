@@ -33,8 +33,24 @@ func (x CsvBarRow) String() string {
 		x.PriorSettle,
 	)
 }
+func (x CsvBarRow) TickString() string {
+	return fmt.Sprintf("%v,%v,%v,%v,%v,%v,%v,%v,%v,%v,%v",
+		x.DateTimeSC.Time().Format("2006/1/2"),
+		x.DateTimeSC.Time().Format("15:04:05.000000"),
+		x.Open,
+		x.High,
+		x.Low,
+		x.Close,
+		x.NumTrades,
+		x.TotalVolume,
+		x.BidVolume,
+		x.AskVolume,
+		x.PriorSettle,
+	)
+}
 
 func DumpBarCsv(outFile interface{}, r *scid.ScidReader, startTime time.Time, endTime time.Time, barSize string) error {
+	r.JumpTo(startTime)
 	w, err := util.WriteBuffer(outFile)
 	if err != nil {
 		log.Errorf("Failed to open \"%v\" for writing with error: %v", outFile, err)
@@ -117,11 +133,15 @@ func DumpBarCsv(outFile interface{}, r *scid.ScidReader, startTime time.Time, en
 	return nil
 }
 
-func DumpRawTicks(outFile interface{}, r *scid.ScidReader) {
+func DumpRawTicks(outFile interface{}, r *scid.ScidReader, startTime time.Time, endTime time.Time, aggregation uint) {
+	r.JumpTo(startTime)
 	w, err := util.WriteBuffer(outFile)
+	//scdt_startTime := scid.NewSCDateTimeMs(startTime)
+	scdt_endTime := scid.NewSCDateTimeMs(endTime)
 	if err != nil {
 		log.Errorf("Failed to open \"%v\" for writing with error: %v", outFile, err)
 	}
+	w.WriteString(CSV_HEADER + "\n")
 	for {
 		rec, err := r.NextRecord()
 		if err == io.EOF {
@@ -130,7 +150,11 @@ func DumpRawTicks(outFile interface{}, r *scid.ScidReader) {
 		if err != nil {
 			log.Infof("Error returned by `r.NextRecord()`: %v", err)
 		}
-		//rec.TotalVolume += 1
-		w.WriteString(fmt.Sprintf("%v\n", rec))
+		if rec.DateTimeSC >= scdt_endTime {
+			break
+		}
+		barRow := CsvBarRow{IntradayRecord: *rec}
+		w.WriteString(fmt.Sprintf("%v\n", barRow.TickString()))
 	}
+	w.Flush()
 }

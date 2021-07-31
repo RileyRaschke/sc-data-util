@@ -6,6 +6,7 @@ import (
 	//"bufio"
 	"os"
 	"strings"
+
 	//"os/signal"
 	"time"
 	//"syscall"
@@ -40,13 +41,10 @@ func main() {
 			os.Exit(1)
 		}
 	}
-	if *startUnixTime != 0 {
-		r.JumpToUnix(*startUnixTime)
-	}
 	// Dump Raw Ticks
 	if *barSize == "" {
 		log.Info("Dumping ticks to stdout")
-		csv.DumpRawTicks(os.Stdout, r)
+		csv.DumpRawTicks(os.Stdout, r, time.Unix(*startUnixTime, 0), time.Unix(*endUnixTime, 0), 1)
 	} else {
 		// 15m 1h 2d 4h 32t 3200t
 		// TODO: Support for days/weeks...
