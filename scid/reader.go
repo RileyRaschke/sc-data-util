@@ -35,6 +35,7 @@ func ReaderFromFile(file interface{}) (*ScidReader, error) {
 
 	fh, ok = file.(*os.File)
 	if !ok {
+		// stdin
 		filePath = file.(string)
 		fh, err = os.Open(filePath)
 		if err != nil {
@@ -42,6 +43,7 @@ func ReaderFromFile(file interface{}) (*ScidReader, error) {
 		}
 		log.Infof("Opened: %v", filePath)
 	} else {
+		// a real file
 		fInfo, err := fh.Stat()
 		if err != nil {
 			return nil, err
@@ -116,7 +118,7 @@ func (sr *ScidReader) NextRecord() (*IntradayRecord, error) {
 	return IntradayRecordFromBytes(raw_scid_record), nil
 }
 
-func (sr *ScidReader) ReadSinceUnixSeconds() []*IntradayRecord {
+func (sr *ScidReader) ReadSince(t time.Time) []*IntradayRecord {
 	return []*IntradayRecord{}
 }
 

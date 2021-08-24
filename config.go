@@ -2,13 +2,14 @@ package main
 
 import (
 	"fmt"
-	"github.com/pborman/getopt/v2"
-	log "github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/pborman/getopt/v2"
+	log "github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 )
 
 var (
@@ -18,10 +19,11 @@ var (
 	envPrefix         = "SCID_UTIL"
 	configSearchPaths = []string{".", "./etc", "$HOME/.sc-data-util/", "$HOME/etc", "/etc"}
 
-	stdIn     = getopt.BoolLong("stdin", 'i', "Read data from STDIN, Dump to STDOUT. Disables most other options.")
-	genConfig = getopt.BoolLong("genconfig", 'x', "Write example config to \"./"+yamlFile+"\"")
-	symbol    = getopt.StringLong("symbol", 's', "", "Symbol to operate on (required, unless `-i`)")
-	barSize   = getopt.StringLong("barSize", 'b', "", "Export as bars of size: [10s, 2m, 4h]")
+	stdIn       = getopt.BoolLong("stdin", 'i', "Read data from STDIN, Dump to STDOUT. Disables most other options.")
+	genConfig   = getopt.BoolLong("genconfig", 'x', "Write example config to \"./"+yamlFile+"\"")
+	dailyDetail = getopt.BoolLong("dailyDetail", 0x00, "Print daily data with added row detail")
+	symbol      = getopt.StringLong("symbol", 's', "", "Symbol to operate on (required, unless `-i`)")
+	barSize     = getopt.StringLong("barSize", 'b', "", "Export as bars of size: [10s, 2m, 4h]")
 	//csvBars = getopt.BoolLong("csv", 0, "Bars in CSV")
 	//jsonBars      = getopt.BoolLong("json", 0, "Bars as JSON")
 	startUnixTime = getopt.Int64Long("startUnixTime", 0, 0, "Export Starting at unix time")
@@ -64,7 +66,7 @@ func init() {
 		os.Exit(1)
 	}
 
-	if *symbol == "" && !*stdIn {
+	if *symbol == "" && (!*stdIn || !*dailyDetail) {
 		usage(fmt.Sprintf("\nNo input or symbol provided\n\nTry: %s --genconfig\n", me))
 		os.Exit(1)
 	}

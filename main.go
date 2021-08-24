@@ -11,6 +11,7 @@ import (
 	"time"
 	//"syscall"
 	"github.com/RileyR387/sc-data-util/csv"
+	"github.com/RileyR387/sc-data-util/dly"
 	"github.com/RileyR387/sc-data-util/scid"
 	"github.com/RileyR387/sc-data-util/util"
 	"github.com/pborman/getopt/v2"
@@ -26,6 +27,13 @@ func main() {
 	log.Infof("Symbol: %v\n", *symbol)
 	var r *scid.ScidReader
 	var err error
+
+	if *dailyDetail {
+		dd := dly.NewDailyDataProvider(*symbol, viper.GetString("data.dir"))
+		dd.DumpDetailCsv()
+		return
+	}
+
 	if *stdIn {
 		r, err = scid.ReaderFromFile(os.Stdin)
 		if err != nil {
