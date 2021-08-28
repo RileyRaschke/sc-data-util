@@ -10,17 +10,20 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-const CSV_HEADER = string("Date,Time,Open,High,Low,Last,Volume,NumTrades,BidVolume,AskVolume,PriorSettle")
+const CSV_HEADER = string("Date,Time,Open,High,Low,Last,Volume,NumTrades,BidVolume,AskVolume")
+const CSV_HEADER_DETAIL = string("Date,Time,Open,High,Low,Last,Volume,NumTrades,BidVolume,AskVolume,PriorLast,PriorSettle,TradingDate")
 
 type CsvBarRow struct {
 	scid.IntradayRecord
 	DateTime    time.Time
 	PriorSettle float32
+	PriorLast   float32
+	TradingDate time.Time
 }
 
 func (x CsvBarRow) String() string {
-	return fmt.Sprintf("%v,%v,%v,%v,%v,%v,%v,%v,%v,%v,%v",
-		x.DateTime.Format("2006/1/2"),
+	return fmt.Sprintf("%v,%v,%v,%v,%v,%v,%v,%v,%v,%v",
+		x.DateTime.Format("2006/01/02"),
 		x.DateTime.Format("15:04:05"),
 		x.Open,
 		x.High,
@@ -30,12 +33,28 @@ func (x CsvBarRow) String() string {
 		x.TotalVolume,
 		x.BidVolume,
 		x.AskVolume,
+	)
+}
+func (x CsvBarRow) DetailString() string {
+	return fmt.Sprintf("%v,%v,%v,%v,%v,%v,%v,%v,%v,%v,%v,%v,%v",
+		x.DateTime.Format("2006/01/02"),
+		x.DateTime.Format("15:04:05"),
+		x.Open,
+		x.High,
+		x.Low,
+		x.Close,
+		x.NumTrades,
+		x.TotalVolume,
+		x.BidVolume,
+		x.AskVolume,
+		x.PriorLast,
 		x.PriorSettle,
+		x.TradingDate.Format("2006/01/02"),
 	)
 }
 func (x CsvBarRow) TickString() string {
-	return fmt.Sprintf("%v,%v,%v,%v,%v,%v,%v,%v,%v,%v,%v",
-		x.DateTimeSC.Time().Format("2006/1/2"),
+	return fmt.Sprintf("%v,%v,%v,%v,%v,%v,%v,%v,%v,%v",
+		x.DateTimeSC.Time().Format("2006/01/02"),
 		x.DateTimeSC.Time().Format("15:04:05.000000"),
 		x.Open,
 		x.High,
@@ -45,31 +64,34 @@ func (x CsvBarRow) TickString() string {
 		x.TotalVolume,
 		x.BidVolume,
 		x.AskVolume,
-		x.PriorSettle,
 	)
 }
 
-func DumpBarCsv(outFile interface{}, r *scid.ScidReader, startTime time.Time, endTime time.Time, barSize string) error {
-	r.JumpTo(startTime)
-	w, err := util.WriteBuffer(outFile)
-	if err != nil {
-		log.Errorf("Failed to open \"%v\" for writing with error: %v", outFile, err)
-	}
-	bDuration, err := time.ParseDuration(barSize)
-	scdt_barStart := scid.NewSCDateTimeMs(startTime)
-	scdt_endTime := scid.NewSCDateTimeMs(endTime)
-	scdt_nextBar := scid.NewSCDateTimeMs(startTime.Add(bDuration))
-	scdt_duration := scdt_nextBar - scdt_barStart
-	scdt_nextBar = scdt_barStart // hacky, but efficient
+type BarAccumulator struct {
+	scdt_barStart scid.SCDateTimeMS
+	scdt_endTime  scid.SCDateTimeMS
+	scdt_nextBar  scid.SCDateTimeMS
+	scdt_duration scid.SCDateTimeMS
+}
+
+func NewBarAccumulator(startTime time.Time, endTime time.Time, barSize string) *BarAccumulator {
+	x := BarAccumulator{}
+	bDuration, _ := time.ParseDuration(barSize)
+	x.scdt_barStart = scid.NewSCDateTimeMS(startTime)
+	x.scdt_endTime = scid.NewSCDateTimeMS(endTime)
+	x.scdt_nextBar = scid.NewSCDateTimeMS(startTime.Add(bDuration))
+	x.scdt_duration = x.scdt_nextBar - x.scdt_barStart
+	x.scdt_nextBar = x.scdt_barStart // hacky, but efficient
+	return &x
+}
+
+func (x *BarAccumulator) AccumulateBar(r *scid.ScidReader) (CsvBarRow, error) {
 	var barRow CsvBarRow
-	w.WriteString(CSV_HEADER + "\n")
 	for {
 		rec, err := r.NextRecord()
 		if err == io.EOF {
-			if barRow.TotalVolume != 0 {
-				w.WriteString(barRow.String() + "\n")
-			}
-			break
+			//w.WriteString(barRow.String() + "\n")
+			return barRow, err
 		}
 		if err != nil {
 			log.Infof("Error returned by `r.NextRecord()`: %v", err)
@@ -95,24 +117,24 @@ func DumpBarCsv(outFile interface{}, r *scid.ScidReader, startTime time.Time, en
 				}
 			}
 		}
-		if rec.DateTimeSC >= scdt_nextBar {
+		if rec.DateTimeSC >= x.scdt_nextBar {
 			if barRow.TotalVolume != 0 {
-				w.WriteString(barRow.String() + "\n")
+				return barRow, nil
 			}
-			if rec.DateTimeSC >= scdt_endTime {
+			if rec.DateTimeSC >= x.scdt_endTime {
 				break
 			}
-			scdt_barStart = scdt_nextBar
+			x.scdt_barStart = x.scdt_nextBar
 			for {
-				if scdt_nextBar > rec.DateTimeSC {
+				if x.scdt_nextBar > rec.DateTimeSC {
 					break
 				} else {
-					scdt_barStart = scdt_nextBar
-					scdt_nextBar += scdt_duration
+					x.scdt_barStart = x.scdt_nextBar
+					x.scdt_nextBar += x.scdt_duration
 				}
 			}
 			barRow = CsvBarRow{IntradayRecord: *rec}
-			barRow.DateTime = scdt_barStart.Time()
+			barRow.DateTime = x.scdt_barStart.Time()
 			barRow.Open = rec.Close
 			//barRow.PriorSettle = getPriorSettle()? Nah.. Need to track in loop
 		} else {
@@ -129,6 +151,27 @@ func DumpBarCsv(outFile interface{}, r *scid.ScidReader, startTime time.Time, en
 			barRow.AskVolume += rec.AskVolume
 		}
 	}
+	return barRow, nil
+}
+
+func DumpBarCsv(outFile interface{}, r *scid.ScidReader, startTime time.Time, endTime time.Time, barSize string) error {
+	r.JumpTo(startTime)
+	w, err := util.WriteBuffer(outFile)
+	if err != nil {
+		log.Errorf("Failed to open \"%v\" for writing with error: %v", outFile, err)
+	}
+	w.WriteString(CSV_HEADER + "\n")
+	ba := NewBarAccumulator(startTime, endTime, barSize)
+	for {
+		barRow, err := ba.AccumulateBar(r)
+		if err != nil {
+			if barRow.TotalVolume != 0 {
+				w.WriteString(barRow.String() + "\n")
+			}
+			break
+		}
+		w.WriteString(barRow.String() + "\n")
+	}
 	w.Flush()
 	return nil
 }
@@ -136,8 +179,8 @@ func DumpBarCsv(outFile interface{}, r *scid.ScidReader, startTime time.Time, en
 func DumpRawTicks(outFile interface{}, r *scid.ScidReader, startTime time.Time, endTime time.Time, aggregation uint) {
 	r.JumpTo(startTime)
 	w, err := util.WriteBuffer(outFile)
-	//scdt_startTime := scid.NewSCDateTimeMs(startTime)
-	scdt_endTime := scid.NewSCDateTimeMs(endTime)
+	//scdt_startTime := scid.NewSCDateTimeMS(startTime)
+	scdt_endTime := scid.NewSCDateTimeMS(endTime)
 	if err != nil {
 		log.Errorf("Failed to open \"%v\" for writing with error: %v", outFile, err)
 	}

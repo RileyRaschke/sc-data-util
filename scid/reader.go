@@ -127,11 +127,11 @@ func (sr *ScidReader) Append(x []*IntradayRecord) (err error) {
 }
 
 func (sr *ScidReader) JumpTo(t time.Time) error {
-	return sr.SeekTo(NewSCDateTimeMs(t))
+	return sr.SeekTo(NewSCDateTimeMS(t))
 }
 
 func (sr *ScidReader) JumpToUnix(t int64) error {
-	return sr.SeekTo(SCDateTimeMs_fromUnix(t))
+	return sr.SeekTo(SCDateTimeMS_fromUnix(t))
 }
 
 func (sr *ScidReader) PeekRecordAt(position int64) (*IntradayRecord, error) {
