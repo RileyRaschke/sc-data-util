@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/RileyR387/sc-data-util/scid"
+	log "github.com/sirupsen/logrus"
 )
 
 type Bar interface {
@@ -72,9 +73,15 @@ func (x *BarAccumulator) AccumulateBar(r *scid.ScidReader) (Bar, error) {
 			return barRow, err
 		}
 		if rec.Open == scid.SINGLE_TRADE_WITH_BID_ASK {
-
+			continue
 		} else if rec.Open == scid.FIRST_SUB_TRADE_OF_UNBUNDLED_TRADE {
+			log.Info("scid.FIRST_SUB_TRADE_OF_UNBUNDLED_TRADE")
+			log.Info(rec)
+			continue
 		} else if rec.Open == scid.LAST_SUB_TRADE_OF_UNBUNDLED_TRADE {
+			log.Info("scid.LAST_SUB_TRADE_OF_UNBUNDLED_TRADE")
+			log.Info(rec)
+			continue
 		} else {
 			// support for index style data
 			if rec.High == rec.Low {

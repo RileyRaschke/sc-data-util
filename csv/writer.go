@@ -63,13 +63,12 @@ func DumpBarCsv(outFile interface{}, r *scid.ScidReader, startTime time.Time, en
 	for {
 		bar, err := ba.AccumulateBar(r)
 		barRow := CsvBarRow{BasicBar: bar.(util.BasicBar)}
+		if barRow.TotalVolume != 0 {
+			w.WriteString(barRow.String() + "\n")
+		}
 		if err != nil {
-			if barRow.TotalVolume != 0 {
-				w.WriteString(barRow.String() + "\n")
-			}
 			break
 		}
-		w.WriteString(barRow.String() + "\n")
 	}
 	w.Flush()
 	return nil
