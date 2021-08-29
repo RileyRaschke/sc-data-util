@@ -72,17 +72,15 @@ func (x *BarAccumulator) AccumulateBar(r *scid.ScidReader) (Bar, error) {
 		if err != nil {
 			return barRow, err
 		}
-		if rec.Open == scid.SINGLE_TRADE_WITH_BID_ASK {
-			continue
-		} else if rec.Open == scid.FIRST_SUB_TRADE_OF_UNBUNDLED_TRADE {
-			log.Info("scid.FIRST_SUB_TRADE_OF_UNBUNDLED_TRADE")
+		if rec.Open == scid.FIRST_SUB_TRADE_OF_UNBUNDLED_TRADE {
+			log.Info("scid.FIRST_SUB_TRADE_OF_UNBUNDLED_TRADE - Unhandled")
 			log.Info(rec)
 			continue
 		} else if rec.Open == scid.LAST_SUB_TRADE_OF_UNBUNDLED_TRADE {
-			log.Info("scid.LAST_SUB_TRADE_OF_UNBUNDLED_TRADE")
+			log.Info("scid.LAST_SUB_TRADE_OF_UNBUNDLED_TRADE - Unhandled")
 			log.Info(rec)
 			continue
-		} else {
+		} else if rec.Open != scid.SINGLE_TRADE_WITH_BID_ASK {
 			// support for index style data
 			if rec.High == rec.Low {
 				if rec.High < rec.Open {
@@ -99,6 +97,7 @@ func (x *BarAccumulator) AccumulateBar(r *scid.ScidReader) (Bar, error) {
 				}
 			}
 		}
+
 		if rec.DateTimeSC >= x.sctd_nextBar {
 			if barRow.TotalVolume != 0 {
 				return barRow, nil
