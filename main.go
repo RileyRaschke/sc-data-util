@@ -24,6 +24,7 @@ var (
 )
 
 func main() {
+	log.Infof("%v version: %v", me, Version)
 	log.Infof("Symbol: %v\n", *symbol)
 	var r *scid.ScidReader
 	var err error
