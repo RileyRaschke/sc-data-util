@@ -70,7 +70,8 @@ func DailyDataFromFile(fPath, symbol string) *DailyData {
 	return dd
 }
 
-func (dp *DailyDataProvider) DumpDetailCsv() {
+func (dp *DailyDataProvider) WriteDailyDetailCsv(outFile interface{}) {
+	//w, err := util.WriteBuffer(outFile)
 }
 
 func (dp *DailyDataProvider) scanMonths() {

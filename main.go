@@ -30,8 +30,9 @@ func main() {
 	var err error
 
 	if *dailyDetail {
+		// TODO: Sanitize input?
 		dd := dly.NewDailyDataProvider(*symbol, viper.GetString("data.dir"))
-		dd.DumpDetailCsv()
+		dd.WriteDailyDetailCsv(os.Stdout)
 		return
 	}
 
@@ -50,15 +51,19 @@ func main() {
 			os.Exit(1)
 		}
 	}
-	// Dump Raw Ticks
+	// Raw Ticks
 	if *barSize == "" {
-		log.Info("Dumping ticks to stdout")
-		csv.DumpRawTicks(os.Stdout, r, time.Unix(*startUnixTime, 0), time.Unix(*endUnixTime, 0), 1)
+		log.Info("Writing ticks to stdout")
+		csv.WriteRawTicks(os.Stdout, r, time.Unix(*startUnixTime, 0), time.Unix(*endUnixTime, 0), 1)
 	} else {
 		// 15m 1h 2d 4h 32t 3200t
 		// TODO: Support for days/weeks...
-		log.Infof("Dumping %v bars to stdout", *barSize)
-		csv.DumpBarCsv(os.Stdout, r, time.Unix(*startUnixTime, 0), time.Unix(*endUnixTime, 0), *barSize)
+		log.Infof("Writing %v bars to stdout", *barSize)
+		if *slim {
+			csv.WriteBarCsv(os.Stdout, r, time.Unix(*startUnixTime, 0), time.Unix(*endUnixTime, 0), *barSize)
+		} else {
+			csv.WriteBarDetailCsv(os.Stdout, r, time.Unix(*startUnixTime, 0), time.Unix(*endUnixTime, 0), *barSize)
+		}
 	}
 }
 

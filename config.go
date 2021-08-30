@@ -22,6 +22,7 @@ var (
 	stdIn       = getopt.BoolLong("stdin", 'i', "Read data from STDIN, Dump to STDOUT. Disables most other options.")
 	genConfig   = getopt.BoolLong("genconfig", 'x', "Write example config to \"./"+yamlFile+"\"")
 	dailyDetail = getopt.BoolLong("dailyDetail", 0x00, "Print daily data with added row detail")
+	slim        = getopt.BoolLong("slim", 0x00, "Slim/Minimal CSV data")
 	symbol      = getopt.StringLong("symbol", 's', "", "Symbol to operate on (required, unless `-i`)")
 	barSize     = getopt.StringLong("barSize", 'b', "", "Export as bars of size: [10s, 2m, 4h]")
 	//csvBars = getopt.BoolLong("csv", 0, "Bars in CSV")

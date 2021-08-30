@@ -52,7 +52,29 @@ func (x CsvBarRow) DetailString() string {
 	)
 }
 
-func DumpBarCsv(outFile interface{}, r *scid.ScidReader, startTime time.Time, endTime time.Time, barSize string) error {
+func WriteBarDetailCsv(outFile interface{}, r *scid.ScidReader, startTime time.Time, endTime time.Time, barSize string) error {
+	r.JumpTo(startTime)
+	w, err := util.WriteBuffer(outFile)
+	if err != nil {
+		log.Errorf("Failed to open \"%v\" for writing with error: %v", outFile, err)
+	}
+	w.WriteString(CSV_HEADER_DETAIL + "\n")
+	ba := util.NewBarAccumulator(startTime, endTime, barSize)
+	for {
+		bar, err := ba.AccumulateBar(r)
+		barRow := CsvBarRow{BasicBar: bar.(util.BasicBar)}
+		if barRow.TotalVolume != 0 {
+			w.WriteString(barRow.DetailString() + "\n")
+		}
+		if err != nil {
+			break
+		}
+	}
+	w.Flush()
+	return nil
+}
+
+func WriteBarCsv(outFile interface{}, r *scid.ScidReader, startTime time.Time, endTime time.Time, barSize string) error {
 	r.JumpTo(startTime)
 	w, err := util.WriteBuffer(outFile)
 	if err != nil {
@@ -74,7 +96,7 @@ func DumpBarCsv(outFile interface{}, r *scid.ScidReader, startTime time.Time, en
 	return nil
 }
 
-func DumpRawTicks(outFile interface{}, r *scid.ScidReader, startTime time.Time, endTime time.Time, aggregation uint) {
+func WriteRawTicks(outFile interface{}, r *scid.ScidReader, startTime time.Time, endTime time.Time, aggregation uint) {
 	r.JumpTo(startTime)
 	w, err := util.WriteBuffer(outFile)
 	scdt_endTime := scid.NewSCDateTimeMS(endTime)
