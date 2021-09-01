@@ -11,7 +11,7 @@ import (
 )
 
 const CSV_HEADER = string("Date,Time,Open,High,Low,Last,Volume,NumTrades,BidVolume,AskVolume")
-const CSV_HEADER_DETAIL = string("Date,Time,Open,High,Low,Last,Volume,NumTrades,BidVolume,AskVolume,PriorLast,PriorSettle,TradingDate")
+const CSV_HEADER_DETAIL = string("Date,Time,Open,High,Low,Last,Volume,NumTrades,BidVolume,AskVolume,PriorLast,PriorSettle,TradingDate,TradingDateTime")
 
 type CsvBarRow struct {
 	util.BasicBar
@@ -35,7 +35,7 @@ func (x CsvBarRow) String() string {
 	)
 }
 func (x CsvBarRow) DetailString() string {
-	return fmt.Sprintf("%v,%v,%v,%v,%v,%v,%v,%v,%v,%v,%v,%v,%v",
+	return fmt.Sprintf("%v,%v,%v,%v,%v,%v,%v,%v,%v,%v,%v,%v,%v,%v",
 		x.DateTime.Format("2006/01/02"),
 		x.DateTime.Format("15:04:05"),
 		x.Open,
@@ -49,12 +49,14 @@ func (x CsvBarRow) DetailString() string {
 		x.PriorLast,
 		x.PriorSettle,
 		x.TradingDate.Format("2006/01/02"),
+		x.TradingDate.Format("15:04:05"),
 	)
 }
 
 func WriteBarDetailCsv(outFile interface{}, r *scid.ScidReader, startTime time.Time, endTime time.Time, barSize string) error {
 	r.JumpTo(startTime)
 	w, err := util.WriteBuffer(outFile)
+	log.Info("Writing detail csv")
 	if err != nil {
 		log.Errorf("Failed to open \"%v\" for writing with error: %v", outFile, err)
 	}
@@ -64,6 +66,7 @@ func WriteBarDetailCsv(outFile interface{}, r *scid.ScidReader, startTime time.T
 		bar, err := ba.AccumulateBar(r)
 		barRow := CsvBarRow{BasicBar: bar.(util.BasicBar)}
 		if barRow.TotalVolume != 0 {
+			barRow.TradingDate = barRow.DateTime.Add(time.Hour * 7)
 			w.WriteString(barRow.DetailString() + "\n")
 		}
 		if err != nil {
