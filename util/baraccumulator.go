@@ -3,11 +3,17 @@ package util
 import (
 	"fmt"
 	"io"
+	"strconv"
 	"time"
 
 	"github.com/RileyR387/sc-data-util/scid"
+	"github.com/RileyR387/sc-data-util/util/bartype"
 	log "github.com/sirupsen/logrus"
 )
+
+type BarAccumulator interface {
+	AccumulateBar(*scid.ScidReader) (Bar, error)
+}
 
 type Bar interface {
 	String() string
@@ -47,25 +53,58 @@ func (x BasicBar) TickString() string {
 	)
 }
 
-type BarAccumulator struct {
+type TimeBarAccumulator struct {
 	scdt_barStart scid.SCDateTimeMS
 	scdt_endTime  scid.SCDateTimeMS
-	sctd_nextBar  scid.SCDateTimeMS
+	scdt_nextBar  scid.SCDateTimeMS
 	scdt_duration scid.SCDateTimeMS
+	barType       bartype.BarType
+	barSize       int64
 }
 
-func NewBarAccumulator(startTime time.Time, endTime time.Time, barSize string) *BarAccumulator {
-	x := BarAccumulator{}
-	bDuration, _ := time.ParseDuration(barSize)
-	x.scdt_barStart = scid.NewSCDateTimeMS(startTime)
-	x.scdt_endTime = scid.NewSCDateTimeMS(endTime)
-	x.sctd_nextBar = scid.NewSCDateTimeMS(startTime.Add(bDuration))
-	x.scdt_duration = x.sctd_nextBar - x.scdt_barStart
-	x.sctd_nextBar = x.scdt_barStart // hacky, but efficient
-	return &x
+type VolumeBarAccumulator struct {
+	barSize   int64
+	remainder BasicBar
+}
+type TickBarAccumulator struct {
+	barSize   int64
+	remainder BasicBar
 }
 
-func (x *BarAccumulator) AccumulateBar(r *scid.ScidReader) (Bar, error) {
+func NewBarAccumulator(startTime time.Time, endTime time.Time, barSize string) BarAccumulator {
+	bt, duration := parseBarSize(barSize)
+	switch bt {
+	case bartype.Time:
+		x := TimeBarAccumulator{}
+		x.scdt_barStart = scid.NewSCDateTimeMS(startTime)
+		x.scdt_endTime = scid.NewSCDateTimeMS(endTime)
+		x.scdt_nextBar = scid.NewSCDateTimeMS(startTime.Add(time.Duration(duration)))
+		x.scdt_duration = x.scdt_nextBar - x.scdt_barStart
+		x.scdt_nextBar = x.scdt_barStart // hacky, but efficient
+		return &x
+	case bartype.Tick:
+		x := TickBarAccumulator{}
+		return &x
+	case bartype.Volume:
+		x := VolumeBarAccumulator{}
+		return &x
+	}
+	return &TimeBarAccumulator{}
+}
+
+func parseBarSize(barSize string) (bartype.BarType, int64) {
+	t := bartype.ParseType(barSize)
+	var duration int64
+	if t != bartype.Time {
+		duration, _ = strconv.ParseInt(barSize[0:len(barSize)-1], 10, 64)
+	} else {
+		d, _ := time.ParseDuration(barSize)
+		duration = int64(d)
+	}
+	return t, duration
+}
+
+func (x *TickBarAccumulator) AccumulateBar(r *scid.ScidReader) (Bar, error) {
 	var barRow BasicBar
 	for {
 		rec, err := r.NextRecord()
@@ -73,11 +112,83 @@ func (x *BarAccumulator) AccumulateBar(r *scid.ScidReader) (Bar, error) {
 			return barRow, err
 		}
 		if rec.Open == scid.FIRST_SUB_TRADE_OF_UNBUNDLED_TRADE {
-			log.Info("scid.FIRST_SUB_TRADE_OF_UNBUNDLED_TRADE - Unhandled")
+			log.Info("FIXME?: scid.FIRST_SUB_TRADE_OF_UNBUNDLED_TRADE - Unhandled")
 			log.Info(rec)
 			continue
 		} else if rec.Open == scid.LAST_SUB_TRADE_OF_UNBUNDLED_TRADE {
-			log.Info("scid.LAST_SUB_TRADE_OF_UNBUNDLED_TRADE - Unhandled")
+			log.Info("FIXME?: scid.LAST_SUB_TRADE_OF_UNBUNDLED_TRADE - Unhandled")
+			log.Info(rec)
+			continue
+		} else if rec.Open != scid.SINGLE_TRADE_WITH_BID_ASK {
+			// support for index style data
+			if rec.High == rec.Low {
+				if rec.High < rec.Open {
+					rec.High = rec.Open
+				}
+				if rec.High < rec.Close {
+					rec.High = rec.Close
+				}
+				if rec.Low > rec.Open || (rec.Open != 0 && rec.Low < 0.5*rec.Open) {
+					rec.Low = rec.Open
+				}
+				if rec.Low > rec.Close || (rec.Close != 0 && rec.Low < 0.5*rec.Close) {
+					rec.Low = rec.Close
+				}
+			}
+		}
+	}
+	return barRow, nil
+}
+
+func (x *VolumeBarAccumulator) AccumulateBar(r *scid.ScidReader) (Bar, error) {
+	var barRow BasicBar
+	for {
+		rec, err := r.NextRecord()
+		if err != nil {
+			return barRow, err
+		}
+		if rec.Open == scid.FIRST_SUB_TRADE_OF_UNBUNDLED_TRADE {
+			log.Info("FIXME?: scid.FIRST_SUB_TRADE_OF_UNBUNDLED_TRADE - Unhandled")
+			log.Info(rec)
+			continue
+		} else if rec.Open == scid.LAST_SUB_TRADE_OF_UNBUNDLED_TRADE {
+			log.Info("FIXME?: scid.LAST_SUB_TRADE_OF_UNBUNDLED_TRADE - Unhandled")
+			log.Info(rec)
+			continue
+		} else if rec.Open != scid.SINGLE_TRADE_WITH_BID_ASK {
+			// support for index style data
+			if rec.High == rec.Low {
+				if rec.High < rec.Open {
+					rec.High = rec.Open
+				}
+				if rec.High < rec.Close {
+					rec.High = rec.Close
+				}
+				if rec.Low > rec.Open || (rec.Open != 0 && rec.Low < 0.5*rec.Open) {
+					rec.Low = rec.Open
+				}
+				if rec.Low > rec.Close || (rec.Close != 0 && rec.Low < 0.5*rec.Close) {
+					rec.Low = rec.Close
+				}
+			}
+		}
+	}
+	return barRow, nil
+}
+
+func (x *TimeBarAccumulator) AccumulateBar(r *scid.ScidReader) (Bar, error) {
+	var barRow BasicBar
+	for {
+		rec, err := r.NextRecord()
+		if err != nil {
+			return barRow, err
+		}
+		if rec.Open == scid.FIRST_SUB_TRADE_OF_UNBUNDLED_TRADE {
+			log.Info("FIXME?: scid.FIRST_SUB_TRADE_OF_UNBUNDLED_TRADE - Unhandled")
+			log.Info(rec)
+			continue
+		} else if rec.Open == scid.LAST_SUB_TRADE_OF_UNBUNDLED_TRADE {
+			log.Info("FIXME?: scid.LAST_SUB_TRADE_OF_UNBUNDLED_TRADE - Unhandled")
 			log.Info(rec)
 			continue
 		} else if rec.Open != scid.SINGLE_TRADE_WITH_BID_ASK {
@@ -98,20 +209,20 @@ func (x *BarAccumulator) AccumulateBar(r *scid.ScidReader) (Bar, error) {
 			}
 		}
 
-		if rec.DateTimeSC >= x.sctd_nextBar {
+		if rec.DateTimeSC >= x.scdt_nextBar {
 			if barRow.TotalVolume != 0 {
 				return barRow, nil
 			}
 			if rec.DateTimeSC >= x.scdt_endTime {
 				return barRow, io.EOF
 			}
-			x.scdt_barStart = x.sctd_nextBar
+			x.scdt_barStart = x.scdt_nextBar
 			for {
-				if x.sctd_nextBar > rec.DateTimeSC {
+				if x.scdt_nextBar > rec.DateTimeSC {
 					break
 				} else {
-					x.scdt_barStart = x.sctd_nextBar
-					x.sctd_nextBar += x.scdt_duration
+					x.scdt_barStart = x.scdt_nextBar
+					x.scdt_nextBar += x.scdt_duration
 				}
 			}
 			barRow = BasicBar{IntradayRecord: *rec}

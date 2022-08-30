@@ -24,7 +24,7 @@ var (
 	dailyDetail = getopt.BoolLong("dailyDetail", 0x00, "Print daily data with added row detail")
 	slim        = getopt.BoolLong("slim", 0x00, "Slim/Minimal CSV data")
 	symbol      = getopt.StringLong("symbol", 's', "", "Symbol to operate on (required, unless `-i`)")
-	barSize     = getopt.StringLong("barSize", 'b', "", "Export as bars of size: [10s, 2m, 4h]")
+	barSize     = getopt.StringLong("barSize", 'b', "", "Export as bars of size: [10s, 2m, 4h, 3200t, 5000v]")
 	//csvBars = getopt.BoolLong("csv", 0, "Bars in CSV")
 	//jsonBars      = getopt.BoolLong("json", 0, "Bars as JSON")
 	startUnixTime = getopt.Int64Long("startUnixTime", 0, 0, "Export Starting at unix time")
