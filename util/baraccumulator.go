@@ -63,12 +63,16 @@ type TimeBarAccumulator struct {
 }
 
 type VolumeBarAccumulator struct {
-	barSize   int64
-	remainder BasicBar
+	scdt_barStart scid.SCDateTimeMS
+	scdt_endTime  scid.SCDateTimeMS
+	barSize       int64
+	remainder     BasicBar
 }
 type TickBarAccumulator struct {
-	barSize   int64
-	remainder BasicBar
+	scdt_barStart scid.SCDateTimeMS
+	scdt_endTime  scid.SCDateTimeMS
+	barSize       int64
+	remainder     BasicBar
 }
 
 func NewBarAccumulator(startTime time.Time, endTime time.Time, barSize string) BarAccumulator {
@@ -84,9 +88,13 @@ func NewBarAccumulator(startTime time.Time, endTime time.Time, barSize string) B
 		return &x
 	case bartype.Tick:
 		x := TickBarAccumulator{}
+		x.scdt_barStart = scid.NewSCDateTimeMS(startTime)
+		x.scdt_endTime = scid.NewSCDateTimeMS(endTime)
 		return &x
 	case bartype.Volume:
 		x := VolumeBarAccumulator{}
+		x.scdt_barStart = scid.NewSCDateTimeMS(startTime)
+		x.scdt_endTime = scid.NewSCDateTimeMS(endTime)
 		return &x
 	}
 	return &TimeBarAccumulator{}
@@ -106,18 +114,23 @@ func parseBarSize(barSize string) (bartype.BarType, int64) {
 
 func (x *TickBarAccumulator) AccumulateBar(r *scid.ScidReader) (Bar, error) {
 	var barRow BasicBar
+	var unbundled = false
 	for {
 		rec, err := r.NextRecord()
 		if err != nil {
 			return barRow, err
 		}
 		if rec.Open == scid.FIRST_SUB_TRADE_OF_UNBUNDLED_TRADE {
-			log.Info("FIXME?: scid.FIRST_SUB_TRADE_OF_UNBUNDLED_TRADE - Unhandled")
-			log.Info(rec)
+			//log.Trace("FIXME?: scid.FIRST_SUB_TRADE_OF_UNBUNDLED_TRADE - Unhandled")
+			//log.Trace(rec)
+			log.Tracef("First Sub: %s", rec)
+			unbundled = true
 			continue
 		} else if rec.Open == scid.LAST_SUB_TRADE_OF_UNBUNDLED_TRADE {
-			log.Info("FIXME?: scid.LAST_SUB_TRADE_OF_UNBUNDLED_TRADE - Unhandled")
-			log.Info(rec)
+			//log.Trace("FIXME?: scid.LAST_SUB_TRADE_OF_UNBUNDLED_TRADE - Unhandled")
+			//log.Trace(rec)
+			log.Tracef("Last Sub: %s", rec)
+			unbundled = false
 			continue
 		} else if rec.Open != scid.SINGLE_TRADE_WITH_BID_ASK {
 			// support for index style data
@@ -135,6 +148,11 @@ func (x *TickBarAccumulator) AccumulateBar(r *scid.ScidReader) (Bar, error) {
 					rec.Low = rec.Close
 				}
 			}
+		} else if unbundled {
+			log.Tracef("between: %s", rec)
+		}
+		if rec.DateTimeSC >= x.scdt_endTime {
+			return barRow, io.EOF
 		}
 	}
 	return barRow, nil
@@ -171,6 +189,9 @@ func (x *VolumeBarAccumulator) AccumulateBar(r *scid.ScidReader) (Bar, error) {
 					rec.Low = rec.Close
 				}
 			}
+		}
+		if rec.DateTimeSC >= x.scdt_endTime {
+			return barRow, io.EOF
 		}
 	}
 	return barRow, nil
