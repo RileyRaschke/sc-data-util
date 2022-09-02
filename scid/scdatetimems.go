@@ -23,7 +23,8 @@ func (x SCDateTimeMS) Time() time.Time {
 	return time.Unix(secs, nanoSecs)
 }
 func (x SCDateTimeMS) String() string {
-	return fmt.Sprintf("%v", x.Time().UTC())
+	//return fmt.Sprintf("%v", x.Time().UTC())
+	return fmt.Sprintf("%v", x.Time().Local())
 }
 func NewSCDateTimeMS(t time.Time) SCDateTimeMS {
 	return SCDateTimeMS((t.Unix()-SC_EPOCH_OFFSET)*int64(1000000) + int64((t.Nanosecond() / 1000)))

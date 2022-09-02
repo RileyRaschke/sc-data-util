@@ -19,9 +19,7 @@ const SINGLE_TRADE_WITH_BID_ASK = float32(0.0)
 const FIRST_SUB_TRADE_OF_UNBUNDLED_TRADE = float32(-1.99900095e+37)
 const LAST_SUB_TRADE_OF_UNBUNDLED_TRADE = float32(-1.99900197e+37)
 
-/*
-* 40 bytes total (320 bits)
- */
+// 40 bytes total (320 bits)
 type IntradayRecord struct {
 	DateTimeSC SCDateTimeMS // 8
 
@@ -32,8 +30,8 @@ type IntradayRecord struct {
 
 	NumTrades   uint32 // 4
 	TotalVolume uint32 // 4
-	BidVolume   uint32 //4
-	AskVolume   uint32 //4
+	BidVolume   uint32 // 4
+	AskVolume   uint32 // 4
 }
 
 func IntradayRecordFromBytes(b []byte) (x *IntradayRecord) {

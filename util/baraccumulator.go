@@ -32,8 +32,8 @@ func (x BasicBar) String() string {
 		x.High,
 		x.Low,
 		x.Close,
-		x.NumTrades,
 		x.TotalVolume,
+		x.NumTrades,
 		x.BidVolume,
 		x.AskVolume,
 	)
@@ -46,8 +46,8 @@ func (x BasicBar) TickString() string {
 		x.High,
 		x.Low,
 		x.Close,
-		x.NumTrades,
 		x.TotalVolume,
+		x.NumTrades,
 		x.BidVolume,
 		x.AskVolume,
 	)
@@ -121,6 +121,8 @@ func (x *TickBarAccumulator) AccumulateBar(r *scid.ScidReader) (Bar, error) {
 			return barRow, err
 		}
 		if rec.Open == scid.FIRST_SUB_TRADE_OF_UNBUNDLED_TRADE {
+			//err := bundleTrades(r, rec)
+
 			//log.Trace("FIXME?: scid.FIRST_SUB_TRADE_OF_UNBUNDLED_TRADE - Unhandled")
 			//log.Trace(rec)
 			log.Tracef("First Sub: %s", rec)
@@ -133,23 +135,11 @@ func (x *TickBarAccumulator) AccumulateBar(r *scid.ScidReader) (Bar, error) {
 			unbundled = false
 			continue
 		} else if rec.Open != scid.SINGLE_TRADE_WITH_BID_ASK {
-			// support for index style data
-			if rec.High == rec.Low {
-				if rec.High < rec.Open {
-					rec.High = rec.Open
-				}
-				if rec.High < rec.Close {
-					rec.High = rec.Close
-				}
-				if rec.Low > rec.Open || (rec.Open != 0 && rec.Low < 0.5*rec.Open) {
-					rec.Low = rec.Open
-				}
-				if rec.Low > rec.Close || (rec.Close != 0 && rec.Low < 0.5*rec.Close) {
-					rec.Low = rec.Close
-				}
-			}
+			normalizeIndexData(rec)
 		} else if unbundled {
 			log.Tracef("between: %s", rec)
+		} else {
+			log.Tracef("trade: %s", rec)
 		}
 		if rec.DateTimeSC >= x.scdt_endTime {
 			return barRow, io.EOF
@@ -166,29 +156,13 @@ func (x *VolumeBarAccumulator) AccumulateBar(r *scid.ScidReader) (Bar, error) {
 			return barRow, err
 		}
 		if rec.Open == scid.FIRST_SUB_TRADE_OF_UNBUNDLED_TRADE {
-			log.Info("FIXME?: scid.FIRST_SUB_TRADE_OF_UNBUNDLED_TRADE - Unhandled")
-			log.Info(rec)
-			continue
-		} else if rec.Open == scid.LAST_SUB_TRADE_OF_UNBUNDLED_TRADE {
-			log.Info("FIXME?: scid.LAST_SUB_TRADE_OF_UNBUNDLED_TRADE - Unhandled")
-			log.Info(rec)
+			err := bundleTrades(r, rec)
+			if err != nil {
+				return barRow, err
+			}
 			continue
 		} else if rec.Open != scid.SINGLE_TRADE_WITH_BID_ASK {
-			// support for index style data
-			if rec.High == rec.Low {
-				if rec.High < rec.Open {
-					rec.High = rec.Open
-				}
-				if rec.High < rec.Close {
-					rec.High = rec.Close
-				}
-				if rec.Low > rec.Open || (rec.Open != 0 && rec.Low < 0.5*rec.Open) {
-					rec.Low = rec.Open
-				}
-				if rec.Low > rec.Close || (rec.Close != 0 && rec.Low < 0.5*rec.Close) {
-					rec.Low = rec.Close
-				}
-			}
+			normalizeIndexData(rec)
 		}
 		if rec.DateTimeSC >= x.scdt_endTime {
 			return barRow, io.EOF
@@ -213,21 +187,7 @@ func (x *TimeBarAccumulator) AccumulateBar(r *scid.ScidReader) (Bar, error) {
 			log.Info(rec)
 			continue
 		} else if rec.Open != scid.SINGLE_TRADE_WITH_BID_ASK {
-			// support for index style data
-			if rec.High == rec.Low {
-				if rec.High < rec.Open {
-					rec.High = rec.Open
-				}
-				if rec.High < rec.Close {
-					rec.High = rec.Close
-				}
-				if rec.Low > rec.Open || (rec.Open != 0 && rec.Low < 0.5*rec.Open) {
-					rec.Low = rec.Open
-				}
-				if rec.Low > rec.Close || (rec.Close != 0 && rec.Low < 0.5*rec.Close) {
-					rec.Low = rec.Close
-				}
-			}
+			normalizeIndexData(rec)
 		}
 
 		if rec.DateTimeSC >= x.scdt_nextBar {
@@ -264,4 +224,60 @@ func (x *TimeBarAccumulator) AccumulateBar(r *scid.ScidReader) (Bar, error) {
 		}
 	}
 	return barRow, nil
+}
+
+func bundleTrades(r *scid.ScidReader, bundle *scid.IntradayRecord) error {
+	for {
+		rec, err := r.NextRecord()
+		if err != nil {
+			return err
+		}
+		bundle.TotalVolume += rec.TotalVolume
+		bundle.BidVolume += rec.BidVolume
+		bundle.AskVolume += rec.AskVolume
+		bundle.NumTrades += rec.NumTrades
+		if rec.High > bundle.High {
+			bundle.High = rec.High
+		}
+		if rec.Low < bundle.Low {
+			bundle.Low = rec.Low
+		}
+		if rec.Open == scid.LAST_SUB_TRADE_OF_UNBUNDLED_TRADE {
+			// assume the last record is the correct close
+			bundle.Close = rec.Close
+			log.Tracef("Bundled trade: %s", rec)
+			return nil
+		}
+	}
+	return nil
+}
+
+func normalizeIndexData(rec *scid.IntradayRecord) {
+	// support for index style data
+	if rec.High == rec.Low {
+		if rec.High < rec.Open {
+			log.Debugf("High(%f) is below the Open(%f) at %s", rec.High, rec.Open, rec.DateTimeSC)
+			rec.High = rec.Open
+		}
+		if rec.High < rec.Close {
+			log.Debugf("High(%f) is below the Close(%f) at %s", rec.High, rec.Open, rec.DateTimeSC)
+			rec.High = rec.Close
+		}
+		if rec.Low > rec.Open {
+			log.Debugf("Low(%f) is above the Open(%f) at %s", rec.Low, rec.Open, rec.DateTimeSC)
+			rec.Low = rec.Open
+		}
+		if rec.Open != 0 && rec.Low < 0.95*rec.Open {
+			log.Debugf("Low(%f) is 95%% below Open(%f) at %s", rec.Low, rec.Open, rec.DateTimeSC)
+			rec.Low = rec.Open
+		}
+		if rec.Low > rec.Close {
+			log.Debugf("Low(%f) is above the Close(%f) at %s", rec.Low, rec.Close, rec.DateTimeSC)
+			rec.Low = rec.Close
+		}
+		if rec.Close != 0 && rec.Low < 0.95*rec.Close {
+			log.Debugf("Low(%f) is 95%% below Close(%f) at %s", rec.Low, rec.Close, rec.DateTimeSC)
+			rec.Low = rec.Close
+		}
+	}
 }
