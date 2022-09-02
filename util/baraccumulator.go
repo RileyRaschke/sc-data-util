@@ -61,21 +61,22 @@ type TimeBarAccumulator struct {
 	barType       bartype.BarType
 	barSize       int64
 	bundle        bool
+	nextBar       BasicBar
 }
 
 type TickBarAccumulator struct {
 	scdt_barStart scid.SCDateTimeMS
 	scdt_endTime  scid.SCDateTimeMS
 	barSize       int64
-	remainder     BasicBar
 	bundle        bool
+	nextBar       BasicBar
 }
 
 type VolumeBarAccumulator struct {
 	scdt_barStart scid.SCDateTimeMS
 	scdt_endTime  scid.SCDateTimeMS
 	barSize       int64
-	remainder     BasicBar
+	nextBar       BasicBar
 }
 
 func NewBarAccumulator(startTime time.Time, endTime time.Time, barSize string, bundleOpt bool) BarAccumulator {
@@ -100,22 +101,9 @@ func NewBarAccumulator(startTime time.Time, endTime time.Time, barSize string, b
 		x := VolumeBarAccumulator{}
 		x.scdt_barStart = scid.NewSCDateTimeMS(startTime)
 		x.scdt_endTime = scid.NewSCDateTimeMS(endTime)
-		x.bundle = bundleOpt
 		return &x
 	}
 	return &TimeBarAccumulator{}
-}
-
-func parseBarSize(barSize string) (bartype.BarType, int64) {
-	t := bartype.ParseType(barSize)
-	var duration int64
-	if t != bartype.Time {
-		duration, _ = strconv.ParseInt(barSize[0:len(barSize)-1], 10, 64)
-	} else {
-		d, _ := time.ParseDuration(barSize)
-		duration = int64(d)
-	}
-	return t, duration
 }
 
 // Tick bars should support optional bundleing
@@ -182,31 +170,28 @@ func (x *VolumeBarAccumulator) AccumulateBar(r *scid.ScidReader) (Bar, error) {
 // Time bars should typically bundle..
 func (x *TimeBarAccumulator) AccumulateBar(r *scid.ScidReader) (Bar, error) {
 	var barRow BasicBar
+	if x.nextBar.TotalVolume > 0 {
+		barRow = x.nextBar
+		x.nextBar = BasicBar{}
+	}
 	for {
 		rec, err := r.NextRecord()
 		if err != nil {
 			return barRow, err
 		}
-		if rec.Open == scid.FIRST_SUB_TRADE_OF_UNBUNDLED_TRADE {
-			log.Info("FIXME?: scid.FIRST_SUB_TRADE_OF_UNBUNDLED_TRADE - Unhandled")
-			log.Info(rec)
-			continue
-		} else if rec.Open == scid.LAST_SUB_TRADE_OF_UNBUNDLED_TRADE {
-			log.Info("FIXME?: scid.LAST_SUB_TRADE_OF_UNBUNDLED_TRADE - Unhandled")
-			log.Info(rec)
-			continue
+		if x.bundle && rec.Open == scid.FIRST_SUB_TRADE_OF_UNBUNDLED_TRADE {
+			bundleTrades(r, rec)
 		} else if rec.Open != scid.SINGLE_TRADE_WITH_BID_ASK {
 			normalizeIndexData(rec)
 		}
 
+		if rec.DateTimeSC >= x.scdt_endTime {
+			return barRow, io.EOF
+		}
+
 		if rec.DateTimeSC >= x.scdt_nextBar {
-			if barRow.TotalVolume != 0 {
-				return barRow, nil
-			}
-			if rec.DateTimeSC >= x.scdt_endTime {
-				return barRow, io.EOF
-			}
 			x.scdt_barStart = x.scdt_nextBar
+			// assure the next tick is within the next bar's duration
 			for {
 				if x.scdt_nextBar > rec.DateTimeSC {
 					break
@@ -215,24 +200,44 @@ func (x *TimeBarAccumulator) AccumulateBar(r *scid.ScidReader) (Bar, error) {
 					x.scdt_nextBar += x.scdt_duration
 				}
 			}
-			barRow = BasicBar{IntradayRecord: *rec}
-			barRow.DateTime = x.scdt_barStart.Time()
-			barRow.Open = rec.Close
+			x.nextBar = BasicBar{IntradayRecord: *rec}
+			x.nextBar.DateTime = x.scdt_barStart.Time()
+			x.nextBar.Open = rec.Close
+
+			if barRow.TotalVolume != 0 {
+				return barRow, nil
+			}
 		} else {
-			if rec.High > barRow.High {
-				barRow.High = rec.High
-			}
-			if rec.Low < barRow.Low {
-				barRow.Low = rec.Low
-			}
-			barRow.Close = rec.Close
-			barRow.NumTrades += rec.NumTrades
-			barRow.TotalVolume += rec.TotalVolume
-			barRow.BidVolume += rec.BidVolume
-			barRow.AskVolume += rec.AskVolume
+			updateBar(&barRow, rec)
 		}
 	}
 	return barRow, nil
+}
+
+func updateBar(barRow *BasicBar, rec *scid.IntradayRecord) {
+	if rec.High > barRow.High {
+		barRow.High = rec.High
+	}
+	if rec.Low < barRow.Low {
+		barRow.Low = rec.Low
+	}
+	barRow.Close = rec.Close
+	barRow.NumTrades += rec.NumTrades
+	barRow.TotalVolume += rec.TotalVolume
+	barRow.BidVolume += rec.BidVolume
+	barRow.AskVolume += rec.AskVolume
+}
+
+func parseBarSize(barSize string) (bartype.BarType, int64) {
+	t := bartype.ParseType(barSize)
+	var duration int64
+	if t != bartype.Time {
+		duration, _ = strconv.ParseInt(barSize[0:len(barSize)-1], 10, 64)
+	} else {
+		d, _ := time.ParseDuration(barSize)
+		duration = int64(d)
+	}
+	return t, duration
 }
 
 func bundleTrades(r *scid.ScidReader, bundle *scid.IntradayRecord) error {
@@ -254,7 +259,7 @@ func bundleTrades(r *scid.ScidReader, bundle *scid.IntradayRecord) error {
 		if rec.Open == scid.LAST_SUB_TRADE_OF_UNBUNDLED_TRADE {
 			// assume the last record is the correct close
 			bundle.Close = rec.Close
-			log.Tracef("Bundled trade: %s", rec)
+			//log.Tracef("Bundled trade: %s", rec)
 			return nil
 		}
 	}

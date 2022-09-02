@@ -118,13 +118,19 @@ func (sr *ScidReader) NextRecord() (*IntradayRecord, error) {
 	return IntradayRecordFromBytes(raw_scid_record), nil
 }
 
+// implement me
+/*
 func (sr *ScidReader) ReadSince(t time.Time) []*IntradayRecord {
 	return []*IntradayRecord{}
 }
+*/
 
+// implement me
+/*
 func (sr *ScidReader) Append(x []*IntradayRecord) (err error) {
 	return nil
 }
+*/
 
 func (sr *ScidReader) JumpTo(t time.Time) error {
 	return sr.SeekTo(NewSCDateTimeMS(t))
