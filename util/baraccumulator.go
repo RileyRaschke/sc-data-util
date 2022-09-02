@@ -60,6 +60,15 @@ type TimeBarAccumulator struct {
 	scdt_duration scid.SCDateTimeMS
 	barType       bartype.BarType
 	barSize       int64
+	bundle        bool
+}
+
+type TickBarAccumulator struct {
+	scdt_barStart scid.SCDateTimeMS
+	scdt_endTime  scid.SCDateTimeMS
+	barSize       int64
+	remainder     BasicBar
+	bundle        bool
 }
 
 type VolumeBarAccumulator struct {
@@ -68,14 +77,8 @@ type VolumeBarAccumulator struct {
 	barSize       int64
 	remainder     BasicBar
 }
-type TickBarAccumulator struct {
-	scdt_barStart scid.SCDateTimeMS
-	scdt_endTime  scid.SCDateTimeMS
-	barSize       int64
-	remainder     BasicBar
-}
 
-func NewBarAccumulator(startTime time.Time, endTime time.Time, barSize string) BarAccumulator {
+func NewBarAccumulator(startTime time.Time, endTime time.Time, barSize string, bundleOpt bool) BarAccumulator {
 	bt, duration := parseBarSize(barSize)
 	switch bt {
 	case bartype.Time:
@@ -85,16 +88,19 @@ func NewBarAccumulator(startTime time.Time, endTime time.Time, barSize string) B
 		x.scdt_nextBar = scid.NewSCDateTimeMS(startTime.Add(time.Duration(duration)))
 		x.scdt_duration = x.scdt_nextBar - x.scdt_barStart
 		x.scdt_nextBar = x.scdt_barStart // hacky, but efficient
+		x.bundle = bundleOpt
 		return &x
 	case bartype.Tick:
 		x := TickBarAccumulator{}
 		x.scdt_barStart = scid.NewSCDateTimeMS(startTime)
 		x.scdt_endTime = scid.NewSCDateTimeMS(endTime)
+		x.bundle = bundleOpt
 		return &x
 	case bartype.Volume:
 		x := VolumeBarAccumulator{}
 		x.scdt_barStart = scid.NewSCDateTimeMS(startTime)
 		x.scdt_endTime = scid.NewSCDateTimeMS(endTime)
+		x.bundle = bundleOpt
 		return &x
 	}
 	return &TimeBarAccumulator{}
@@ -112,6 +118,7 @@ func parseBarSize(barSize string) (bartype.BarType, int64) {
 	return t, duration
 }
 
+// Tick bars should support optional bundleing
 func (x *TickBarAccumulator) AccumulateBar(r *scid.ScidReader) (Bar, error) {
 	var barRow BasicBar
 	var unbundled = false
@@ -148,6 +155,7 @@ func (x *TickBarAccumulator) AccumulateBar(r *scid.ScidReader) (Bar, error) {
 	return barRow, nil
 }
 
+// Volume bars should never bundle...I think.
 func (x *VolumeBarAccumulator) AccumulateBar(r *scid.ScidReader) (Bar, error) {
 	var barRow BasicBar
 	for {
@@ -171,6 +179,7 @@ func (x *VolumeBarAccumulator) AccumulateBar(r *scid.ScidReader) (Bar, error) {
 	return barRow, nil
 }
 
+// Time bars should typically bundle..
 func (x *TimeBarAccumulator) AccumulateBar(r *scid.ScidReader) (Bar, error) {
 	var barRow BasicBar
 	for {
