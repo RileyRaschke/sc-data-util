@@ -67,7 +67,7 @@ type TimeBarAccumulator struct {
 type TickBarAccumulator struct {
 	scdt_barStart scid.SCDateTimeMS
 	scdt_endTime  scid.SCDateTimeMS
-	barSize       int64
+	barSize       uint32
 	bundle        bool
 	nextBar       BasicBar
 }
@@ -75,7 +75,7 @@ type TickBarAccumulator struct {
 type VolumeBarAccumulator struct {
 	scdt_barStart scid.SCDateTimeMS
 	scdt_endTime  scid.SCDateTimeMS
-	barSize       int64
+	barSize       uint32
 	nextBar       BasicBar
 }
 
@@ -96,75 +96,16 @@ func NewBarAccumulator(startTime time.Time, endTime time.Time, barSize string, b
 		x.scdt_barStart = scid.NewSCDateTimeMS(startTime)
 		x.scdt_endTime = scid.NewSCDateTimeMS(endTime)
 		x.bundle = bundleOpt
+		x.barSize = uint32(duration) // in ticks
 		return &x
 	case bartype.Volume:
 		x := VolumeBarAccumulator{}
 		x.scdt_barStart = scid.NewSCDateTimeMS(startTime)
 		x.scdt_endTime = scid.NewSCDateTimeMS(endTime)
+		x.barSize = uint32(duration) // in volume
 		return &x
 	}
 	return &TimeBarAccumulator{}
-}
-
-// Tick bars should support optional bundleing
-func (x *TickBarAccumulator) AccumulateBar(r *scid.ScidReader) (Bar, error) {
-	var barRow BasicBar
-	var unbundled = false
-	for {
-		rec, err := r.NextRecord()
-		if err != nil {
-			return barRow, err
-		}
-		if rec.Open == scid.FIRST_SUB_TRADE_OF_UNBUNDLED_TRADE {
-			//err := bundleTrades(r, rec)
-
-			//log.Trace("FIXME?: scid.FIRST_SUB_TRADE_OF_UNBUNDLED_TRADE - Unhandled")
-			//log.Trace(rec)
-			log.Tracef("First Sub: %s", rec)
-			unbundled = true
-			continue
-		} else if rec.Open == scid.LAST_SUB_TRADE_OF_UNBUNDLED_TRADE {
-			//log.Trace("FIXME?: scid.LAST_SUB_TRADE_OF_UNBUNDLED_TRADE - Unhandled")
-			//log.Trace(rec)
-			log.Tracef("Last Sub: %s", rec)
-			unbundled = false
-			continue
-		} else if rec.Open != scid.SINGLE_TRADE_WITH_BID_ASK {
-			normalizeIndexData(rec)
-		} else if unbundled {
-			log.Tracef("between: %s", rec)
-		} else {
-			log.Tracef("trade: %s", rec)
-		}
-		if rec.DateTimeSC >= x.scdt_endTime {
-			return barRow, io.EOF
-		}
-	}
-	return barRow, nil
-}
-
-// Volume bars should never bundle...I think.
-func (x *VolumeBarAccumulator) AccumulateBar(r *scid.ScidReader) (Bar, error) {
-	var barRow BasicBar
-	for {
-		rec, err := r.NextRecord()
-		if err != nil {
-			return barRow, err
-		}
-		if rec.Open == scid.FIRST_SUB_TRADE_OF_UNBUNDLED_TRADE {
-			err := bundleTrades(r, rec)
-			if err != nil {
-				return barRow, err
-			}
-			continue
-		} else if rec.Open != scid.SINGLE_TRADE_WITH_BID_ASK {
-			normalizeIndexData(rec)
-		}
-		if rec.DateTimeSC >= x.scdt_endTime {
-			return barRow, io.EOF
-		}
-	}
-	return barRow, nil
 }
 
 // Time bars should typically bundle..
@@ -180,7 +121,11 @@ func (x *TimeBarAccumulator) AccumulateBar(r *scid.ScidReader) (Bar, error) {
 			return barRow, err
 		}
 		if x.bundle && rec.Open == scid.FIRST_SUB_TRADE_OF_UNBUNDLED_TRADE {
-			bundleTrades(r, rec)
+			err := bundleTrades(r, rec)
+			if err != nil {
+				log.Warn("Error occured before trade was bundled!")
+				return barRow, err
+			}
 		} else if rec.Open != scid.SINGLE_TRADE_WITH_BID_ASK {
 			normalizeIndexData(rec)
 		}
@@ -209,6 +154,119 @@ func (x *TimeBarAccumulator) AccumulateBar(r *scid.ScidReader) (Bar, error) {
 			}
 		} else {
 			updateBar(&barRow, rec)
+		}
+	}
+	return barRow, nil
+}
+
+// Tick bars should support optional bundleing
+func (x *TickBarAccumulator) AccumulateBar(r *scid.ScidReader) (Bar, error) {
+	var barRow BasicBar
+
+	rec, err := r.NextRecord()
+	if err != nil {
+		return barRow, err
+	}
+
+	if x.nextBar.TotalVolume > 0 {
+		barRow = x.nextBar
+		x.nextBar = BasicBar{}
+	} else {
+		barRow = BasicBar{IntradayRecord: *rec}
+		barRow.DateTime = rec.DateTimeSC.Time()
+		barRow.Open = rec.Close
+	}
+
+	for {
+		rec, err := r.NextRecord()
+		if err != nil {
+			return barRow, err
+		}
+
+		if x.bundle && rec.Open == scid.FIRST_SUB_TRADE_OF_UNBUNDLED_TRADE {
+			err := bundleTrades(r, rec)
+			if err != nil {
+				log.Warn("Error occured before trade was bundled!")
+				return barRow, err
+			}
+		} else if rec.Open != scid.SINGLE_TRADE_WITH_BID_ASK {
+			normalizeIndexData(rec)
+		}
+
+		if rec.DateTimeSC >= x.scdt_endTime {
+			return barRow, io.EOF
+		}
+
+		updateBar(&barRow, rec)
+
+		if barRow.NumTrades < x.barSize {
+			continue
+		}
+		if barRow.NumTrades == x.barSize {
+			x.nextBar = BasicBar{}
+			return barRow, nil
+		}
+		if barRow.NumTrades > x.barSize {
+			overage := barRow.NumTrades - x.barSize
+
+			x.nextBar = BasicBar{IntradayRecord: *rec}
+			x.nextBar.DateTime = rec.DateTimeSC.Time()
+			x.nextBar.Open = rec.Close
+
+			barRow.TotalVolume -= overage
+
+			if rec.BidVolume >= rec.AskVolume && rec.BidVolume >= overage {
+				barRow.BidVolume -= overage
+				x.nextBar.BidVolume = overage
+			} else if rec.AskVolume >= rec.BidVolume && rec.AskVolume >= overage {
+				barRow.AskVolume -= overage
+				x.nextBar.AskVolume = overage
+			} else {
+				for {
+					if rec.AskVolume > 0 {
+						overage--
+						rec.AskVolume--
+						barRow.AskVolume--
+						x.nextBar.AskVolume++
+					}
+					if overage == 0 {
+						break
+					}
+					if rec.AskVolume > 0 {
+						overage--
+						rec.BidVolume--
+						barRow.BidVolume--
+						x.nextBar.BidVolume++
+					}
+					if overage == 0 {
+						break
+					}
+				}
+			}
+			return barRow, nil
+		}
+	}
+	return barRow, nil
+}
+
+// Volume bars should never bundle...I think.
+func (x *VolumeBarAccumulator) AccumulateBar(r *scid.ScidReader) (Bar, error) {
+	var barRow BasicBar
+	for {
+		rec, err := r.NextRecord()
+		if err != nil {
+			return barRow, err
+		}
+		if rec.Open == scid.FIRST_SUB_TRADE_OF_UNBUNDLED_TRADE {
+			err := bundleTrades(r, rec)
+			if err != nil {
+				return barRow, err
+			}
+		} else if rec.Open != scid.SINGLE_TRADE_WITH_BID_ASK {
+			normalizeIndexData(rec)
+		}
+		if rec.DateTimeSC >= x.scdt_endTime {
+			return barRow, io.EOF
 		}
 	}
 	return barRow, nil
