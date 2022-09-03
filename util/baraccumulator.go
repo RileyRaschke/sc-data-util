@@ -245,21 +245,75 @@ func (x *TickBarAccumulator) AccumulateBar(r *scid.ScidReader) (Bar, error) {
 // Volume bars should never bundle...I think.
 func (x *VolumeBarAccumulator) AccumulateBar(r *scid.ScidReader) (Bar, error) {
 	var barRow BasicBar
+
+	rec, err := r.NextRecord()
+	if err != nil {
+		return barRow, err
+	}
+
+	if x.nextBar.TotalVolume > 0 {
+		barRow = x.nextBar
+		x.nextBar = BasicBar{}
+	} else {
+		barRow = BasicBar{IntradayRecord: *rec}
+		barRow.DateTime = rec.DateTimeSC.Time()
+		barRow.Open = rec.Close
+	}
+
 	for {
 		rec, err := r.NextRecord()
 		if err != nil {
 			return barRow, err
 		}
-		if rec.Open == scid.FIRST_SUB_TRADE_OF_UNBUNDLED_TRADE {
-			err := bundleTrades(r, rec)
-			if err != nil {
-				return barRow, err
-			}
-		} else if rec.Open != scid.SINGLE_TRADE_WITH_BID_ASK {
+
+		if rec.Open != scid.SINGLE_TRADE_WITH_BID_ASK {
 			normalizeIndexData(rec)
 		}
+
 		if rec.DateTimeSC >= x.scdt_endTime {
 			return barRow, io.EOF
+		}
+
+		updateBar(&barRow, rec)
+
+		if barRow.TotalVolume < x.barSize {
+			continue
+		}
+		if barRow.TotalVolume == x.barSize {
+			x.nextBar = BasicBar{}
+			return barRow, nil
+		}
+		if barRow.TotalVolume > x.barSize {
+			overage := barRow.TotalVolume - x.barSize
+
+			x.nextBar = BasicBar{IntradayRecord: *rec}
+			x.nextBar.DateTime = rec.DateTimeSC.Time()
+			x.nextBar.Open = rec.Close
+
+			barRow.TotalVolume -= overage
+
+			if rec.BidVolume >= rec.AskVolume && rec.BidVolume >= overage {
+				barRow.BidVolume -= overage
+				x.nextBar.BidVolume = overage
+			} else if rec.AskVolume >= rec.BidVolume && rec.AskVolume >= overage {
+				barRow.AskVolume -= overage
+				x.nextBar.AskVolume = overage
+			} else {
+				if rec.AskVolume > rec.BidVolume {
+					barRow.BidVolume -= rec.BidVolume
+					x.nextBar.BidVolume = 0
+					overage -= rec.BidVolume
+					x.nextBar.AskVolume -= overage
+					barRow.AskVolume -= overage
+				} else {
+					barRow.AskVolume -= rec.AskVolume
+					x.nextBar.AskVolume = 0
+					overage -= rec.AskVolume
+					x.nextBar.BidVolume -= overage
+					barRow.BidVolume -= overage
+				}
+			}
+			return barRow, nil
 		}
 	}
 	return barRow, nil

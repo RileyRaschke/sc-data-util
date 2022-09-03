@@ -3,7 +3,7 @@
 make install >&2 || exit 1
 
 symbol=${1:-"f.us.epu22"}
-period=${2:-"1000t"}
+period=${2:-"1000v"}
 daysBack=${3:-"22"}
 
 #startTime=$(date +%s -d last-month)
