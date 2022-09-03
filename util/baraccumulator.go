@@ -222,6 +222,7 @@ func (x *TickBarAccumulator) AccumulateBar(r *scid.ScidReader) (Bar, error) {
 				barRow.AskVolume -= overage
 				x.nextBar.AskVolume = overage
 			} else {
+				// this is dumb...
 				for {
 					if rec.AskVolume > 0 {
 						overage--
@@ -232,7 +233,7 @@ func (x *TickBarAccumulator) AccumulateBar(r *scid.ScidReader) (Bar, error) {
 					if overage == 0 {
 						break
 					}
-					if rec.AskVolume > 0 {
+					if rec.BidVolume > 0 {
 						overage--
 						rec.BidVolume--
 						barRow.BidVolume--
