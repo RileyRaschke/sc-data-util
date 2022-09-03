@@ -222,26 +222,18 @@ func (x *TickBarAccumulator) AccumulateBar(r *scid.ScidReader) (Bar, error) {
 				barRow.AskVolume -= overage
 				x.nextBar.AskVolume = overage
 			} else {
-				// this is dumb...
-				for {
-					if rec.AskVolume > 0 {
-						overage--
-						rec.AskVolume--
-						barRow.AskVolume--
-						x.nextBar.AskVolume++
-					}
-					if overage == 0 {
-						break
-					}
-					if rec.BidVolume > 0 {
-						overage--
-						rec.BidVolume--
-						barRow.BidVolume--
-						x.nextBar.BidVolume++
-					}
-					if overage == 0 {
-						break
-					}
+				if rec.AskVolume > rec.BidVolume {
+					barRow.BidVolume -= rec.BidVolume
+					x.nextBar.BidVolume = 0
+					overage -= rec.BidVolume
+					x.nextBar.AskVolume -= overage
+					barRow.AskVolume -= overage
+				} else {
+					barRow.AskVolume -= rec.AskVolume
+					x.nextBar.AskVolume = 0
+					overage -= rec.AskVolume
+					x.nextBar.BidVolume -= overage
+					barRow.BidVolume -= overage
 				}
 			}
 			return barRow, nil
