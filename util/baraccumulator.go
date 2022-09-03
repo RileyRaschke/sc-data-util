@@ -3,7 +3,6 @@ package util
 import (
 	"fmt"
 	"io"
-	"strconv"
 	"time"
 
 	"github.com/RileyR387/sc-data-util/scid"
@@ -337,15 +336,20 @@ func updateBar(barRow *BasicBar, rec *scid.IntradayRecord) {
 }
 
 func parseBarSize(barSize string) (bartype.BarType, int64) {
-	t := bartype.ParseType(barSize)
-	var duration int64
-	if t != bartype.Time {
-		duration, _ = strconv.ParseInt(barSize[0:len(barSize)-1], 10, 64)
-	} else {
-		d, _ := time.ParseDuration(barSize)
-		duration = int64(d)
-	}
-	return t, duration
+	/*
+		t, duration := bartype.Parse(barSize)
+		var duration int64
+		if t != bartype.Time {
+			duration, _ = strconv.ParseInt(barSize[0:len(barSize)-1], 10, 64)
+		} else {
+			d, err := time.ParseDuration(barSize)
+			if err != nil {
+				return t, duration = int64(d)
+			}
+		}
+		return t, duration
+	*/
+	return bartype.Parse(barSize)
 }
 
 func bundleTrades(r *scid.ScidReader, bundle *scid.IntradayRecord) error {
