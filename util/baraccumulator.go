@@ -214,6 +214,7 @@ func (x *TickBarAccumulator) AccumulateBar(r *scid.ScidReader) (Bar, error) {
 			x.nextBar.Open = rec.Close
 
 			barRow.TotalVolume -= overage
+			x.nextBar.TotalVolume = overage
 
 			if rec.BidVolume >= rec.AskVolume && rec.BidVolume >= overage {
 				barRow.BidVolume -= overage
@@ -284,6 +285,7 @@ func (x *VolumeBarAccumulator) AccumulateBar(r *scid.ScidReader) (Bar, error) {
 			return barRow, nil
 		}
 		if barRow.TotalVolume > x.barSize {
+
 			overage := barRow.TotalVolume - x.barSize
 
 			x.nextBar = BasicBar{IntradayRecord: *rec}
@@ -291,6 +293,7 @@ func (x *VolumeBarAccumulator) AccumulateBar(r *scid.ScidReader) (Bar, error) {
 			x.nextBar.Open = rec.Close
 
 			barRow.TotalVolume -= overage
+			x.nextBar.TotalVolume = overage
 
 			if rec.BidVolume >= rec.AskVolume && rec.BidVolume >= overage {
 				barRow.BidVolume -= overage
