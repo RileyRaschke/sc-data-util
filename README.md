@@ -40,6 +40,7 @@ OPTIONS
  -b, --barSize=value
                     Export as bars of size: [10s, 2m, 4h, 3200t, 5000v]
                     Note: T for ticks, V for volume (like Sierra)
+                    Note: To export raw ticks (raw times and sales), don't provide this option
 
      --dailyDetail  Print daily data with added row detail
 
