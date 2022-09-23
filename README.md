@@ -39,15 +39,23 @@ Notes:
 OPTIONS
  -b, --barSize=value
                     Export as bars of size: [10s, 2m, 4h, 3200t, 5000v]
+                    Note: T for ticks, V for volume (like Sierra)
+
      --dailyDetail  Print daily data with added row detail
+
      --endUnixTime=value
                     End export at unix time [1663892348]
- -i, --stdin        Read data from STDIN, Dump to STDOUT. Disables most other
-                    options.
- -m, --bundle
-     --slim         Slim/Minimal CSV data
+
      --startUnixTime=value
                     Export Starting at unix time
+
+ -i, --stdin        Read data from STDIN, Dump to STDOUT. Disables most other
+                    options.
+
+ -m, --bundle       Cout a large order filling multiple limits as one bundled trade.
+
+     --slim         Slim/Minimal CSV data
+
  -s, --symbol=value
                     Symbol to operate on (required, unless `-i`)
      --version      Show version (undefined)
