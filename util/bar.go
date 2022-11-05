@@ -44,17 +44,3 @@ func (x BasicBar) TickString() string {
 		x.AskVolume,
 	)
 }
-
-func updateBar(barRow *BasicBar, rec *scid.IntradayRecord) {
-	if rec.High > barRow.High {
-		barRow.High = rec.High
-	}
-	if rec.Low < barRow.Low {
-		barRow.Low = rec.Low
-	}
-	barRow.Close = rec.Close
-	barRow.NumTrades += rec.NumTrades
-	barRow.TotalVolume += rec.TotalVolume
-	barRow.BidVolume += rec.BidVolume
-	barRow.AskVolume += rec.AskVolume
-}

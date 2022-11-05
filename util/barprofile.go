@@ -1,6 +1,10 @@
 package util
 
-import "time"
+import (
+	"time"
+
+	"github.com/RileyR387/sc-data-util/scid"
+)
 
 type BarProfile struct {
 	DateTime       time.Time
@@ -9,4 +13,8 @@ type BarProfile struct {
 
 func (x *BarProfile) String() string {
 	return "FIXME"
+}
+
+func (x *BarProfile) AddRecord(rec *scid.IntradayRecord) {
+
 }

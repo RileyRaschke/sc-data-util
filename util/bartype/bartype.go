@@ -3,6 +3,8 @@ package bartype
 import (
 	"strconv"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 )
 
 type BarType int
@@ -83,9 +85,12 @@ func Parse(s string) (BarType, int64) {
 	bt := ParseType(s)
 	switch bt {
 	case Time:
+		log.Info("Type is type")
 		d, err := time.ParseDuration(s)
-		if err != nil {
+		if err == nil {
 			return bt, int64(d)
+		} else {
+			log.Errorf("Failed to parse duration \"%s\" with error: %v", s, err)
 		}
 		break
 	case Volume:

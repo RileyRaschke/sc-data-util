@@ -104,7 +104,7 @@ func WriteBarCsv(outFile interface{}, r *scid.ScidReader, startTime time.Time, e
 func WriteBarDetailCsv(outFile interface{}, r *scid.ScidReader, startTime time.Time, endTime time.Time, barSize string, bundleOpt bool) error {
 	r.JumpTo(startTime)
 	w, err := util.WriteBuffer(outFile)
-	log.Info("Writing detail csv with profile")
+	log.Info("Writing detail csv")
 	if err != nil {
 		log.Errorf("Failed to open \"%v\" for writing with error: %v", outFile, err)
 	}
@@ -128,7 +128,7 @@ func WriteBarDetailCsv(outFile interface{}, r *scid.ScidReader, startTime time.T
 func WriteBarDetailWithProfileCsv(outFile interface{}, r *scid.ScidReader, startTime time.Time, endTime time.Time, barSize string, bundleOpt bool) error {
 	r.JumpTo(startTime)
 	w, err := util.WriteBuffer(outFile)
-	log.Info("Writing detail csv")
+	log.Info("Writing detail csv with profile")
 	if err != nil {
 		log.Errorf("Failed to open \"%v\" for writing with error: %v", outFile, err)
 	}

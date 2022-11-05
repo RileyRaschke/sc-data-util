@@ -14,6 +14,7 @@ type TimeBarAccumulator struct {
 	barSize       int64
 	bundle        bool
 	withProfile   bool
+	nextProfile   BarProfile
 	nextBar       BasicBar
 }
 
@@ -23,6 +24,7 @@ type TickBarAccumulator struct {
 	barSize       uint32
 	bundle        bool
 	withProfile   bool
+	nextProfile   BarProfile
 	nextBar       BasicBar
 }
 
@@ -31,5 +33,6 @@ type VolumeBarAccumulator struct {
 	scdt_endTime  scid.SCDateTimeMS
 	barSize       uint32
 	withProfile   bool
+	nextProfile   BarProfile
 	nextBar       BasicBar
 }

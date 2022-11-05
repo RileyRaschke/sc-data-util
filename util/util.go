@@ -39,12 +39,72 @@ func WriteBuffer(outFile interface{}) (*bufio.Writer, error) {
 	return bufio.NewWriter(fh), err
 }
 
+func updateBar(barRow *BasicBar, rec *scid.IntradayRecord) {
+	if rec.High > barRow.High {
+		barRow.High = rec.High
+	}
+	if rec.Low < barRow.Low {
+		barRow.Low = rec.Low
+	}
+	barRow.Close = rec.Close
+	barRow.NumTrades += rec.NumTrades
+	barRow.TotalVolume += rec.TotalVolume
+	barRow.BidVolume += rec.BidVolume
+	barRow.AskVolume += rec.AskVolume
+}
+
+func updateBarWithProfile(barRow *BasicBar, barProfile *BarProfile, rec *scid.IntradayRecord) {
+	if rec.High > barRow.High {
+		barRow.High = rec.High
+	}
+	if rec.Low < barRow.Low {
+		barRow.Low = rec.Low
+	}
+	barRow.Close = rec.Close
+	barRow.NumTrades += rec.NumTrades
+	barRow.TotalVolume += rec.TotalVolume
+	barRow.BidVolume += rec.BidVolume
+	barRow.AskVolume += rec.AskVolume
+	barProfile.AddRecord(rec)
+}
+
+func updateBarProfile(barProfile *BarProfile, rec *scid.IntradayRecord) {
+	barProfile.AddRecord(rec)
+}
+
 func bundleTrades(r *scid.ScidReader, bundle *scid.IntradayRecord) error {
 	for {
 		rec, err := r.NextRecord()
 		if err != nil {
 			return err
 		}
+		bundle.TotalVolume += rec.TotalVolume
+		bundle.BidVolume += rec.BidVolume
+		bundle.AskVolume += rec.AskVolume
+		bundle.NumTrades += rec.NumTrades
+		if rec.High > bundle.High {
+			bundle.High = rec.High
+		}
+		if rec.Low < bundle.Low {
+			bundle.Low = rec.Low
+		}
+		if rec.Open == scid.LAST_SUB_TRADE_OF_UNBUNDLED_TRADE {
+			// assume the last record is the correct close
+			bundle.Close = rec.Close
+			//log.Tracef("Bundled trade: %s", rec)
+			return nil
+		}
+	}
+	return nil
+}
+
+func bundleTradesWithProfile(r *scid.ScidReader, bundle *scid.IntradayRecord, profile *BarProfile) error {
+	for {
+		rec, err := r.NextRecord()
+		if err != nil {
+			return err
+		}
+		profile.AddRecord(rec)
 		bundle.TotalVolume += rec.TotalVolume
 		bundle.BidVolume += rec.BidVolume
 		bundle.AskVolume += rec.AskVolume
