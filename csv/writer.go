@@ -60,7 +60,7 @@ func (x CsvBarRow) DetailString() string {
 }
 
 func (x CsvProfileBarRow) DetailProfileString() string {
-	return fmt.Sprintf("%v,%v,%v,%v,%v,%v,%v,%v,%v,%v,%v,%v,%v,%v",
+	return fmt.Sprintf("%v,%v,%v,%v,%v,%v,%v,%v,%v,%v,%v,%v,%v,%v,%v",
 		x.DateTime.Format("2006/01/02"),
 		x.DateTime.Format("15:04:05"),
 		x.Open,
