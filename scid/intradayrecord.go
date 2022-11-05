@@ -43,6 +43,27 @@ func IntradayRecordFromBytes(b []byte) (x *IntradayRecord) {
 }
 
 func (x *IntradayRecord) String() string {
+	tickType := "T"
+	if x.Open == FIRST_SUB_TRADE_OF_UNBUNDLED_TRADE {
+		tickType = "FS"
+	} else if x.Open == LAST_SUB_TRADE_OF_UNBUNDLED_TRADE {
+		tickType = "LS"
+	}
+	return fmt.Sprintf("%v,%v,%v,%v,%v,%v,%v,%v,%v,%v",
+		x.DateTimeSC.Time().Format("2006/01/02"),
+		x.DateTimeSC.Time().Format("15:04:05.000000"),
+		tickType,
+		x.High,
+		x.Low,
+		x.Close,
+		x.TotalVolume,
+		x.NumTrades,
+		x.BidVolume,
+		x.AskVolume,
+	)
+}
+
+func (x *IntradayRecord) JsonString() string {
 	return fmt.Sprintf("{"+
 		"\"t\":\"%v\", "+
 		"\"o\":\"%v\", "+

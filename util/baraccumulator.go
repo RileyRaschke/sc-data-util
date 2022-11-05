@@ -22,9 +22,9 @@ func NewBarAccumulator(startTime time.Time, endTime time.Time, barSize string, b
 		x.scdt_endTime = scid.NewSCDateTimeMS(endTime)
 		x.scdt_nextBar = scid.NewSCDateTimeMS(startTime.Add(time.Duration(duration)))
 		x.scdt_duration = x.scdt_nextBar - x.scdt_barStart
-		x.scdt_nextBar = x.scdt_barStart // hacky, but efficient
 		x.bundle = bundleOpt
 		x.withProfile = withProfile
+		log.Infof("BAR_SIZE %s, DURATION %d, BSTART %s, BNEXTSTART %s", barSize, duration, x.scdt_barStart, x.scdt_nextBar)
 		return &x
 	case bartype.Tick:
 		x := TickBarAccumulator{}
@@ -47,6 +47,7 @@ func NewBarAccumulator(startTime time.Time, endTime time.Time, barSize string, b
 
 // Time bars should typically bundle..
 func (x *TimeBarAccumulator) AccumulateBar(r *scid.ScidReader) (Bar, error) {
+	//barRow := BasicBar{scid.IntradayRecord{}, x.scdt_barStart.Time()}
 	var barRow BasicBar
 	if x.nextBar.TotalVolume > 0 {
 		barRow = x.nextBar
@@ -71,26 +72,32 @@ func (x *TimeBarAccumulator) AccumulateBar(r *scid.ScidReader) (Bar, error) {
 			return barRow, io.EOF
 		}
 
+		var i int = 0
 		if rec.DateTimeSC >= x.scdt_nextBar {
 			x.scdt_barStart = x.scdt_nextBar
 			// assure the next tick is within the next bar's duration
 			for {
+				//log.Infof("recTime %s, nextBar %s endTime %s %d", rec.DateTimeSC, x.scdt_nextBar, x.scdt_endTime, i)
 				if x.scdt_nextBar > rec.DateTimeSC {
+					//log.Info("Broke out")
 					break
 				} else {
 					x.scdt_barStart = x.scdt_nextBar
 					x.scdt_nextBar += x.scdt_duration
 				}
+				i++
 			}
-			x.nextBar = BasicBar{IntradayRecord: *rec}
-			x.nextBar.DateTime = x.scdt_barStart.Time()
-			x.nextBar.Open = rec.Close
+			x.nextBar = NewBasicBar(rec, x.scdt_barStart)
 
 			if barRow.TotalVolume != 0 {
 				return barRow, nil
 			}
 		} else {
-			updateBar(&barRow, rec)
+			if barRow.IntradayRecord.DateTimeSC < x.scdt_barStart {
+				barRow = NewBasicBar(rec, x.scdt_barStart)
+			} else {
+				barRow.AddRecord(rec)
+			}
 		}
 	}
 	return barRow, nil
@@ -134,7 +141,7 @@ func (x *TickBarAccumulator) AccumulateBar(r *scid.ScidReader) (Bar, error) {
 			return barRow, io.EOF
 		}
 
-		updateBar(&barRow, rec)
+		barRow.AddRecord(rec)
 
 		if barRow.NumTrades < x.barSize {
 			continue
@@ -212,7 +219,7 @@ func (x *VolumeBarAccumulator) AccumulateBar(r *scid.ScidReader) (Bar, error) {
 			return barRow, io.EOF
 		}
 
-		updateBar(&barRow, rec)
+		barRow.AddRecord(rec)
 
 		if barRow.TotalVolume < x.barSize {
 			continue

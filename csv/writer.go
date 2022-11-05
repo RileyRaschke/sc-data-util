@@ -10,6 +10,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+const CSV_HEADER_RAW = string("Date,Time,Open,Ask,Bid,Last,Volume,NumTrades,BidVolume,AskVolume")
 const CSV_HEADER = string("Date,Time,Open,High,Low,Last,Volume,NumTrades,BidVolume,AskVolume")
 const CSV_HEADER_DETAIL = string("Date,Time,Open,High,Low,Last,Volume,NumTrades,BidVolume,AskVolume,PriorLast,PriorSettle,TradingDate,TradingDateTime")
 const CSV_HEADER_PROFILE = string("Date,Time,Open,High,Low,Last,Volume,NumTrades,BidVolume,AskVolume,PriorLast,PriorSettle,TradingDate,TradingDateTime,BarProfile")
@@ -108,7 +109,7 @@ func WriteBarDetailCsv(outFile interface{}, r *scid.ScidReader, startTime time.T
 	if err != nil {
 		log.Errorf("Failed to open \"%v\" for writing with error: %v", outFile, err)
 	}
-	w.WriteString(CSV_HEADER_PROFILE + "\n")
+	w.WriteString(CSV_HEADER_DETAIL + "\n")
 	ba := util.NewBarAccumulator(startTime, endTime, barSize, bundleOpt, false)
 	for {
 		bar, err := ba.AccumulateBar(r)
@@ -132,7 +133,7 @@ func WriteBarDetailWithProfileCsv(outFile interface{}, r *scid.ScidReader, start
 	if err != nil {
 		log.Errorf("Failed to open \"%v\" for writing with error: %v", outFile, err)
 	}
-	w.WriteString(CSV_HEADER_DETAIL + "\n")
+	w.WriteString(CSV_HEADER_PROFILE + "\n")
 	ba := util.NewBarProfileAccumulator(startTime, endTime, barSize, bundleOpt, true)
 	for {
 		bar, pro, err := ba.AccumulateProfile(r)
@@ -157,7 +158,7 @@ func WriteRawTicks(outFile interface{}, r *scid.ScidReader, startTime time.Time,
 	if err != nil {
 		log.Errorf("Failed to open \"%v\" for writing with error: %v", outFile, err)
 	}
-	w.WriteString(CSV_HEADER + "\n")
+	w.WriteString(CSV_HEADER_RAW + "\n")
 	for {
 		rec, err := r.NextRecord()
 		if err == io.EOF {
@@ -169,8 +170,9 @@ func WriteRawTicks(outFile interface{}, r *scid.ScidReader, startTime time.Time,
 		if rec.DateTimeSC >= scdt_endTime {
 			break
 		}
-		barRow := CsvBarRow{BasicBar: util.BasicBar{IntradayRecord: *rec}}
-		w.WriteString(fmt.Sprintf("%v\n", barRow.TickString()))
+		//barRow := CsvBarRow{BasicBar: util.BasicBar{IntradayRecord: *rec}}
+		//w.WriteString(fmt.Sprintf("%v\n", barRow.TickString()))
+		w.WriteString(fmt.Sprintf("%s\n", rec))
 	}
 	w.Flush()
 }

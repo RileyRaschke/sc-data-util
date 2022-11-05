@@ -85,7 +85,6 @@ func Parse(s string) (BarType, int64) {
 	bt := ParseType(s)
 	switch bt {
 	case Time:
-		log.Info("Type is type")
 		d, err := time.ParseDuration(s)
 		if err == nil {
 			return bt, int64(d)
