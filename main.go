@@ -61,6 +61,8 @@ func main() {
 		log.Infof("Writing %v bars to stdout", *barSize)
 		if *slim {
 			csv.WriteBarCsv(os.Stdout, r, time.Unix(*startUnixTime, 0), time.Unix(*endUnixTime, 0), *barSize, *bundle)
+		} else if *detailProfile {
+			csv.WriteBarDetailWithProfileCsv(os.Stdout, r, time.Unix(*startUnixTime, 0), time.Unix(*endUnixTime, 0), *barSize, *bundle)
 		} else {
 			csv.WriteBarDetailCsv(os.Stdout, r, time.Unix(*startUnixTime, 0), time.Unix(*endUnixTime, 0), *barSize, *bundle)
 		}

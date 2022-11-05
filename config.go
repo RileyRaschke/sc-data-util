@@ -19,13 +19,14 @@ var (
 	envPrefix         = "SCID_UTIL"
 	configSearchPaths = []string{".", "./etc", "$HOME/.sc-data-util/", "$HOME/etc", "/etc"}
 
-	stdIn       = getopt.BoolLong("stdin", 'i', "Read data from STDIN, Dump to STDOUT. Disables most other options.")
-	genConfig   = getopt.BoolLong("genconfig", 'x', "Write example config to \"./"+yamlFile+"\"")
-	dailyDetail = getopt.BoolLong("dailyDetail", 0x00, "Print daily data with added row detail")
-	slim        = getopt.BoolLong("slim", 0x00, "Slim/Minimal CSV data")
-	symbol      = getopt.StringLong("symbol", 's', "", "Symbol to operate on (required, unless `-i`)")
-	barSize     = getopt.StringLong("barSize", 'b', "", "Export as bars of size: [10s, 2m, 4h, 3200t, 5000v]")
-	bundle      = getopt.BoolLong("bundle", 'm', "", "Bundle trades")
+	stdIn         = getopt.BoolLong("stdin", 'i', "Read data from STDIN, Dump to STDOUT. Disables most other options.")
+	genConfig     = getopt.BoolLong("genconfig", 'x', "Write example config to \"./"+yamlFile+"\"")
+	dailyDetail   = getopt.BoolLong("dailyDetail", 0x00, "Print daily data with added row detail")
+	detailProfile = getopt.BoolLong("detailProfile", 0x00, "Print daily data with added row detail and bar profile")
+	slim          = getopt.BoolLong("slim", 0x00, "Slim/Minimal CSV data")
+	symbol        = getopt.StringLong("symbol", 's', "", "Symbol to operate on (required, unless `-i`)")
+	barSize       = getopt.StringLong("barSize", 'b', "", "Export as bars of size: [10s, 2m, 4h, 3200t, 5000v]")
+	bundle        = getopt.BoolLong("bundle", 'm', "", "Bundle trades")
 	//csvBars = getopt.BoolLong("csv", 0, "Bars in CSV")
 	//jsonBars      = getopt.BoolLong("json", 0, "Bars as JSON")
 	startUnixTime = getopt.Int64Long("startUnixTime", 0, 0, "Export Starting at unix time")

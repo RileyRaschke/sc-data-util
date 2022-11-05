@@ -13,6 +13,9 @@ import (
 type BarAccumulator interface {
 	AccumulateBar(*scid.ScidReader) (Bar, error)
 }
+type BarProfileAccumulator interface {
+	AccumulateProfile(*scid.ScidReader) (Bar, BarProfile, error)
+}
 
 type Bar interface {
 	String() string
@@ -60,6 +63,7 @@ type TimeBarAccumulator struct {
 	barType       bartype.BarType
 	barSize       int64
 	bundle        bool
+	withProfile   bool
 	nextBar       BasicBar
 }
 
@@ -68,6 +72,7 @@ type TickBarAccumulator struct {
 	scdt_endTime  scid.SCDateTimeMS
 	barSize       uint32
 	bundle        bool
+	withProfile   bool
 	nextBar       BasicBar
 }
 
@@ -75,10 +80,11 @@ type VolumeBarAccumulator struct {
 	scdt_barStart scid.SCDateTimeMS
 	scdt_endTime  scid.SCDateTimeMS
 	barSize       uint32
+	withProfile   bool
 	nextBar       BasicBar
 }
 
-func NewBarAccumulator(startTime time.Time, endTime time.Time, barSize string, bundleOpt bool) BarAccumulator {
+func NewBarAccumulator(startTime time.Time, endTime time.Time, barSize string, bundleOpt bool, withProfile bool) BarAccumulator {
 	bt, duration := parseBarSize(barSize)
 	switch bt {
 	case bartype.Time:
@@ -89,18 +95,53 @@ func NewBarAccumulator(startTime time.Time, endTime time.Time, barSize string, b
 		x.scdt_duration = x.scdt_nextBar - x.scdt_barStart
 		x.scdt_nextBar = x.scdt_barStart // hacky, but efficient
 		x.bundle = bundleOpt
+		x.withProfile = withProfile
 		return &x
 	case bartype.Tick:
 		x := TickBarAccumulator{}
 		x.scdt_barStart = scid.NewSCDateTimeMS(startTime)
 		x.scdt_endTime = scid.NewSCDateTimeMS(endTime)
 		x.bundle = bundleOpt
+		x.withProfile = withProfile
 		x.barSize = uint32(duration) // in ticks
 		return &x
 	case bartype.Volume:
 		x := VolumeBarAccumulator{}
 		x.scdt_barStart = scid.NewSCDateTimeMS(startTime)
 		x.scdt_endTime = scid.NewSCDateTimeMS(endTime)
+		x.withProfile = withProfile
+		x.barSize = uint32(duration) // in volume
+		return &x
+	}
+	return &TimeBarAccumulator{}
+}
+
+func NewBarProfileAccumulator(startTime time.Time, endTime time.Time, barSize string, bundleOpt bool, withProfile bool) BarProfileAccumulator {
+	bt, duration := parseBarSize(barSize)
+	switch bt {
+	case bartype.Time:
+		x := TimeBarAccumulator{}
+		x.scdt_barStart = scid.NewSCDateTimeMS(startTime)
+		x.scdt_endTime = scid.NewSCDateTimeMS(endTime)
+		x.scdt_nextBar = scid.NewSCDateTimeMS(startTime.Add(time.Duration(duration)))
+		x.scdt_duration = x.scdt_nextBar - x.scdt_barStart
+		x.scdt_nextBar = x.scdt_barStart // hacky, but efficient
+		x.bundle = bundleOpt
+		x.withProfile = withProfile
+		return &x
+	case bartype.Tick:
+		x := TickBarAccumulator{}
+		x.scdt_barStart = scid.NewSCDateTimeMS(startTime)
+		x.scdt_endTime = scid.NewSCDateTimeMS(endTime)
+		x.bundle = bundleOpt
+		x.withProfile = withProfile
+		x.barSize = uint32(duration) // in ticks
+		return &x
+	case bartype.Volume:
+		x := VolumeBarAccumulator{}
+		x.scdt_barStart = scid.NewSCDateTimeMS(startTime)
+		x.scdt_endTime = scid.NewSCDateTimeMS(endTime)
+		x.withProfile = withProfile
 		x.barSize = uint32(duration) // in volume
 		return &x
 	}
@@ -156,6 +197,23 @@ func (x *TimeBarAccumulator) AccumulateBar(r *scid.ScidReader) (Bar, error) {
 		}
 	}
 	return barRow, nil
+}
+
+func (x *TimeBarAccumulator) AccumulateProfile(r *scid.ScidReader) (Bar, BarProfile, error) {
+	var barRow BasicBar
+	var barProfile BarProfile
+	return barRow, barProfile, nil
+}
+
+func (x *TickBarAccumulator) AccumulateProfile(r *scid.ScidReader) (Bar, BarProfile, error) {
+	var barRow BasicBar
+	var barProfile BarProfile
+	return barRow, barProfile, nil
+}
+func (x *VolumeBarAccumulator) AccumulateProfile(r *scid.ScidReader) (Bar, BarProfile, error) {
+	var barRow BasicBar
+	var barProfile BarProfile
+	return barRow, barProfile, nil
 }
 
 // Tick bars should support optional bundleing
