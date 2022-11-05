@@ -2,8 +2,10 @@ package util
 
 import (
 	"bufio"
-	log "github.com/sirupsen/logrus"
 	"os"
+
+	"github.com/RileyR387/sc-data-util/scid"
+	log "github.com/sirupsen/logrus"
 )
 
 var (
@@ -35,4 +37,60 @@ func WriteBuffer(outFile interface{}) (*bufio.Writer, error) {
 	}
 
 	return bufio.NewWriter(fh), err
+}
+
+func bundleTrades(r *scid.ScidReader, bundle *scid.IntradayRecord) error {
+	for {
+		rec, err := r.NextRecord()
+		if err != nil {
+			return err
+		}
+		bundle.TotalVolume += rec.TotalVolume
+		bundle.BidVolume += rec.BidVolume
+		bundle.AskVolume += rec.AskVolume
+		bundle.NumTrades += rec.NumTrades
+		if rec.High > bundle.High {
+			bundle.High = rec.High
+		}
+		if rec.Low < bundle.Low {
+			bundle.Low = rec.Low
+		}
+		if rec.Open == scid.LAST_SUB_TRADE_OF_UNBUNDLED_TRADE {
+			// assume the last record is the correct close
+			bundle.Close = rec.Close
+			//log.Tracef("Bundled trade: %s", rec)
+			return nil
+		}
+	}
+	return nil
+}
+
+func normalizeIndexData(rec *scid.IntradayRecord) {
+	// support for index style data
+	if rec.High == rec.Low {
+		if rec.High < rec.Open {
+			log.Debugf("High(%f) is below the Open(%f) at %s", rec.High, rec.Open, rec.DateTimeSC)
+			rec.High = rec.Open
+		}
+		if rec.High < rec.Close {
+			log.Debugf("High(%f) is below the Close(%f) at %s", rec.High, rec.Open, rec.DateTimeSC)
+			rec.High = rec.Close
+		}
+		if rec.Low > rec.Open {
+			log.Debugf("Low(%f) is above the Open(%f) at %s", rec.Low, rec.Open, rec.DateTimeSC)
+			rec.Low = rec.Open
+		}
+		if rec.Open != 0 && rec.Low < 0.95*rec.Open {
+			log.Debugf("Low(%f) is 95%% below Open(%f) at %s", rec.Low, rec.Open, rec.DateTimeSC)
+			rec.Low = rec.Open
+		}
+		if rec.Low > rec.Close {
+			log.Debugf("Low(%f) is above the Close(%f) at %s", rec.Low, rec.Close, rec.DateTimeSC)
+			rec.Low = rec.Close
+		}
+		if rec.Close != 0 && rec.Low < 0.95*rec.Close {
+			log.Debugf("Low(%f) is 95%% below Close(%f) at %s", rec.Low, rec.Close, rec.DateTimeSC)
+			rec.Low = rec.Close
+		}
+	}
 }
