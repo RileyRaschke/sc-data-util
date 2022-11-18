@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -26,6 +27,7 @@ var (
 	slim          = getopt.BoolLong("slim", 0x00, "Slim/Minimal CSV data")
 	symbol        = getopt.StringLong("symbol", 's', "", "Symbol to operate on (required, unless `-i`)")
 	barSize       = getopt.StringLong("barSize", 'b', "", "Export as bars of size: [10s, 2m, 4h, 3200t, 5000v]")
+	tickSize      = getopt.StringLong("tickSize", 0x00, "0.001", "Round to tick size")
 	bundle        = getopt.BoolLong("bundle", 'm', "", "Bundle trades")
 	//csvBars = getopt.BoolLong("csv", 0, "Bars in CSV")
 	//jsonBars      = getopt.BoolLong("json", 0, "Bars as JSON")
@@ -61,6 +63,14 @@ func init() {
 		ShowVersion()
 		os.Exit(0)
 		return
+	}
+
+	if *tickSize != "" {
+		_, err := strconv.ParseFloat(strings.TrimSpace(*tickSize), 64)
+		if err != nil {
+			usage(fmt.Sprintf("\nFailed to parse tickSize: %v\n", err))
+			os.Exit(1)
+		}
 	}
 
 	if *stdIn && (*symbol != "" || *startUnixTime != 0 || *endUnixTime != 0) {

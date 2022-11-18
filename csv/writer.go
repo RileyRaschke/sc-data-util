@@ -20,6 +20,8 @@ type CsvBarRow struct {
 	PriorSettle float32
 	PriorLast   float32
 	TradingDate time.Time
+	TickSize    float64
+	FloatFmt    string
 }
 
 type CsvProfileBarRow struct {
@@ -29,12 +31,12 @@ type CsvProfileBarRow struct {
 
 func (x CsvBarRow) String() string {
 	return fmt.Sprintf("%v,%v,%v,%v,%v,%v,%v,%v,%v,%v",
-		x.DateTime.Format("2006/01/02"),
+		x.DateTime.Format("2006/1/02"),
 		x.DateTime.Format("15:04:05"),
-		x.Open,
-		x.High,
-		x.Low,
-		x.Close,
+		fmt.Sprintf(x.FloatFmt, util.RoundToTickSize(x.Open, x.TickSize)),
+		fmt.Sprintf(x.FloatFmt, util.RoundToTickSize(x.High, x.TickSize)),
+		fmt.Sprintf(x.FloatFmt, util.RoundToTickSize(x.Low, x.TickSize)),
+		fmt.Sprintf(x.FloatFmt, util.RoundToTickSize(x.Close, x.TickSize)),
 		x.TotalVolume,
 		x.NumTrades,
 		x.BidVolume,
@@ -45,10 +47,10 @@ func (x CsvBarRow) DetailString() string {
 	return fmt.Sprintf("%v,%v,%v,%v,%v,%v,%v,%v,%v,%v,%v,%v,%v,%v",
 		x.DateTime.Format("2006/01/02"),
 		x.DateTime.Format("15:04:05"),
-		x.Open,
-		x.High,
-		x.Low,
-		x.Close,
+		fmt.Sprintf(x.FloatFmt, util.RoundToTickSize(x.Open, x.TickSize)),
+		fmt.Sprintf(x.FloatFmt, util.RoundToTickSize(x.High, x.TickSize)),
+		fmt.Sprintf(x.FloatFmt, util.RoundToTickSize(x.Low, x.TickSize)),
+		fmt.Sprintf(x.FloatFmt, util.RoundToTickSize(x.Close, x.TickSize)),
 		x.TotalVolume,
 		x.NumTrades,
 		x.BidVolume,
@@ -64,10 +66,10 @@ func (x CsvProfileBarRow) DetailProfileString() string {
 	return fmt.Sprintf("%v,%v,%v,%v,%v,%v,%v,%v,%v,%v,%v,%v,%v,%v,%v",
 		x.DateTime.Format("2006/01/02"),
 		x.DateTime.Format("15:04:05"),
-		x.Open,
-		x.High,
-		x.Low,
-		x.Close,
+		fmt.Sprintf(x.FloatFmt, util.RoundToTickSize(x.Open, x.TickSize)),
+		fmt.Sprintf(x.FloatFmt, util.RoundToTickSize(x.High, x.TickSize)),
+		fmt.Sprintf(x.FloatFmt, util.RoundToTickSize(x.Low, x.TickSize)),
+		fmt.Sprintf(x.FloatFmt, util.RoundToTickSize(x.Close, x.TickSize)),
 		x.TotalVolume,
 		x.NumTrades,
 		x.BidVolume,
@@ -80,7 +82,8 @@ func (x CsvProfileBarRow) DetailProfileString() string {
 	)
 }
 
-func WriteBarCsv(outFile interface{}, r *scid.ScidReader, startTime time.Time, endTime time.Time, barSize string, bundleOpt bool) error {
+func WriteBarCsv(outFile interface{}, r *scid.ScidReader, startTime time.Time, endTime time.Time, tickSizeStr string, barSize string, bundleOpt bool) error {
+	tickSize, formatStr, _ := util.ParseTickSize(tickSizeStr)
 	r.JumpTo(startTime)
 	w, err := util.WriteBuffer(outFile)
 	if err != nil {
@@ -90,7 +93,7 @@ func WriteBarCsv(outFile interface{}, r *scid.ScidReader, startTime time.Time, e
 	ba := util.NewBarAccumulator(startTime, endTime, barSize, bundleOpt, false)
 	for {
 		bar, err := ba.AccumulateBar(r)
-		barRow := CsvBarRow{BasicBar: bar.(util.BasicBar)}
+		barRow := CsvBarRow{BasicBar: bar.(util.BasicBar), TickSize: tickSize, FloatFmt: formatStr}
 		if barRow.TotalVolume != 0 {
 			w.WriteString(barRow.String() + "\n")
 		}
@@ -102,7 +105,8 @@ func WriteBarCsv(outFile interface{}, r *scid.ScidReader, startTime time.Time, e
 	return nil
 }
 
-func WriteBarDetailCsv(outFile interface{}, r *scid.ScidReader, startTime time.Time, endTime time.Time, barSize string, bundleOpt bool) error {
+func WriteBarDetailCsv(outFile interface{}, r *scid.ScidReader, startTime time.Time, endTime time.Time, tickSizeStr string, barSize string, bundleOpt bool) error {
+	tickSize, formatStr, _ := util.ParseTickSize(tickSizeStr)
 	r.JumpTo(startTime)
 	w, err := util.WriteBuffer(outFile)
 	log.Info("Writing detail csv")
@@ -113,7 +117,7 @@ func WriteBarDetailCsv(outFile interface{}, r *scid.ScidReader, startTime time.T
 	ba := util.NewBarAccumulator(startTime, endTime, barSize, bundleOpt, false)
 	for {
 		bar, err := ba.AccumulateBar(r)
-		barRow := CsvBarRow{BasicBar: bar.(util.BasicBar)}
+		barRow := CsvBarRow{BasicBar: bar.(util.BasicBar), TickSize: tickSize, FloatFmt: formatStr}
 		if barRow.TotalVolume != 0 {
 			barRow.TradingDate = barRow.DateTime.Add(time.Hour * 7)
 			w.WriteString(barRow.DetailString() + "\n")
@@ -126,7 +130,8 @@ func WriteBarDetailCsv(outFile interface{}, r *scid.ScidReader, startTime time.T
 	return nil
 }
 
-func WriteBarDetailWithProfileCsv(outFile interface{}, r *scid.ScidReader, startTime time.Time, endTime time.Time, barSize string, bundleOpt bool) error {
+func WriteBarDetailWithProfileCsv(outFile interface{}, r *scid.ScidReader, startTime time.Time, endTime time.Time, tickSizeStr string, barSize string, bundleOpt bool) error {
+	tickSize, formatStr, _ := util.ParseTickSize(tickSizeStr)
 	r.JumpTo(startTime)
 	w, err := util.WriteBuffer(outFile)
 	log.Info("Writing detail csv with profile")
@@ -137,7 +142,7 @@ func WriteBarDetailWithProfileCsv(outFile interface{}, r *scid.ScidReader, start
 	ba := util.NewBarProfileAccumulator(startTime, endTime, barSize, bundleOpt, true)
 	for {
 		bar, pro, err := ba.AccumulateProfile(r)
-		br := CsvBarRow{BasicBar: bar.(util.BasicBar)}
+		br := CsvBarRow{BasicBar: bar.(util.BasicBar), TickSize: tickSize, FloatFmt: formatStr}
 		barRow := CsvProfileBarRow{CsvBarRow: br, BarProfile: pro}
 		if barRow.TotalVolume != 0 {
 			barRow.TradingDate = barRow.DateTime.Add(time.Hour * 7)
@@ -151,7 +156,7 @@ func WriteBarDetailWithProfileCsv(outFile interface{}, r *scid.ScidReader, start
 	return nil
 }
 
-func WriteRawTicks(outFile interface{}, r *scid.ScidReader, startTime time.Time, endTime time.Time, aggregation uint) {
+func WriteRawTicks(outFile interface{}, r *scid.ScidReader, startTime time.Time, endTime time.Time, tickSizeStr string, aggregation uint) {
 	r.JumpTo(startTime)
 	w, err := util.WriteBuffer(outFile)
 	scdt_endTime := scid.NewSCDateTimeMS(endTime)

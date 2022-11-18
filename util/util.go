@@ -2,7 +2,11 @@ package util
 
 import (
 	"bufio"
+	"fmt"
+	"math"
 	"os"
+	"strconv"
+	"strings"
 
 	"github.com/RileyR387/sc-data-util/scid"
 	log "github.com/sirupsen/logrus"
@@ -139,4 +143,23 @@ func normalizeIndexData(rec *scid.IntradayRecord) {
 			rec.Low = rec.Close
 		}
 	}
+}
+
+func FormatPrice(p float32, tickSizeStr string) string {
+	tickSize, formatStr, _ := ParseTickSize(tickSizeStr)
+	return fmt.Sprintf(formatStr, RoundToTickSize(p, tickSize))
+}
+
+func ParseTickSize(tickSizeStr string) (tickSize float64, formatStr string, err error) {
+	tickSize, err = strconv.ParseFloat(strings.TrimSpace(tickSizeStr), 64)
+	if err != nil {
+		return 0.0, "", err
+	}
+	formatStr = fmt.Sprintf("%%.%vf", len(tickSizeStr[strings.Index(tickSizeStr, ".")+1:]))
+	return
+}
+
+func RoundToTickSize(n float32, s float64) float64 {
+	size := 1 / s
+	return math.Round(float64(n)*size) / size
 }

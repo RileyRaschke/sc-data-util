@@ -51,20 +51,21 @@ func main() {
 			os.Exit(1)
 		}
 	}
+
 	// Raw Ticks
 	if *barSize == "" {
 		log.Info("Writing ticks to stdout")
-		csv.WriteRawTicks(os.Stdout, r, time.Unix(*startUnixTime, 0), time.Unix(*endUnixTime, 0), 1)
+		csv.WriteRawTicks(os.Stdout, r, time.Unix(*startUnixTime, 0), time.Unix(*endUnixTime, 0), *tickSize, 1)
 	} else {
 		// 15m 1h 2d 4h 32t 3200t
 		// TODO: Support for days/weeks...
 		log.Infof("Writing %v bars to stdout", *barSize)
 		if *slim {
-			csv.WriteBarCsv(os.Stdout, r, time.Unix(*startUnixTime, 0), time.Unix(*endUnixTime, 0), *barSize, *bundle)
+			csv.WriteBarCsv(os.Stdout, r, time.Unix(*startUnixTime, 0), time.Unix(*endUnixTime, 0), *tickSize, *barSize, *bundle)
 		} else if *detailProfile {
-			csv.WriteBarDetailWithProfileCsv(os.Stdout, r, time.Unix(*startUnixTime, 0), time.Unix(*endUnixTime, 0), *barSize, *bundle)
+			csv.WriteBarDetailWithProfileCsv(os.Stdout, r, time.Unix(*startUnixTime, 0), time.Unix(*endUnixTime, 0), *tickSize, *barSize, *bundle)
 		} else {
-			csv.WriteBarDetailCsv(os.Stdout, r, time.Unix(*startUnixTime, 0), time.Unix(*endUnixTime, 0), *barSize, *bundle)
+			csv.WriteBarDetailCsv(os.Stdout, r, time.Unix(*startUnixTime, 0), time.Unix(*endUnixTime, 0), *tickSize, *barSize, *bundle)
 		}
 	}
 }
