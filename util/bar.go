@@ -78,11 +78,11 @@ func NewBasicBar(rec *scid.IntradayRecord, scdt scid.SCDateTimeMS) BasicBar {
 }
 
 func (x *BasicBar) AddRecord(rec *scid.IntradayRecord) {
-	if rec.AskVolume > 0 && rec.High > x.High {
-		x.High = rec.High
+	if rec.Close > x.High {
+		x.High = rec.Close
 	}
-	if rec.BidVolume > 0 && rec.Low < x.Low {
-		x.Low = rec.Low
+	if rec.Close < x.Low {
+		x.Low = rec.Close
 	}
 	x.Close = rec.Close
 	x.NumTrades += rec.NumTrades
