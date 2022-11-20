@@ -47,7 +47,6 @@ func NewBarAccumulator(startTime time.Time, endTime time.Time, barSize string, b
 
 // Time bars should typically bundle..
 func (x *TimeBarAccumulator) AccumulateBar(r *scid.ScidReader) (Bar, error) {
-	//barRow := BasicBar{scid.IntradayRecord{}, x.scdt_barStart.Time()}
 	var barRow BasicBar
 	if x.nextBar.TotalVolume > 0 {
 		barRow = x.nextBar
@@ -64,9 +63,12 @@ func (x *TimeBarAccumulator) AccumulateBar(r *scid.ScidReader) (Bar, error) {
 				log.Warn("Error occured before trade was bundled!")
 				return barRow, err
 			}
-		} else if rec.Open != scid.SINGLE_TRADE_WITH_BID_ASK {
-			normalizeIndexData(rec)
 		}
+		/*
+			 else if sym.IsIndexData() && rec.Open != scid.SINGLE_TRADE_WITH_BID_ASK {
+				normalizeIndexData(rec)
+			}
+		*/
 
 		if rec.DateTimeSC >= x.scdt_endTime {
 			return barRow, io.EOF
@@ -116,9 +118,7 @@ func (x *TickBarAccumulator) AccumulateBar(r *scid.ScidReader) (Bar, error) {
 		barRow = x.nextBar
 		x.nextBar = BasicBar{}
 	} else {
-		barRow = BasicBar{IntradayRecord: *rec}
-		barRow.DateTime = rec.DateTimeSC.Time()
-		barRow.Open = rec.Close
+		barRow = NewBasicBar(rec, rec.DateTimeSC)
 	}
 
 	for {
@@ -133,9 +133,12 @@ func (x *TickBarAccumulator) AccumulateBar(r *scid.ScidReader) (Bar, error) {
 				log.Warn("Error occured before trade was bundled!")
 				return barRow, err
 			}
-		} else if rec.Open != scid.SINGLE_TRADE_WITH_BID_ASK {
-			normalizeIndexData(rec)
 		}
+		/*
+			 else if sym.IsIndexData() && rec.Open != scid.SINGLE_TRADE_WITH_BID_ASK {
+				normalizeIndexData(rec)
+			}
+		*/
 
 		if rec.DateTimeSC >= x.scdt_endTime {
 			return barRow, io.EOF
@@ -153,9 +156,7 @@ func (x *TickBarAccumulator) AccumulateBar(r *scid.ScidReader) (Bar, error) {
 		if barRow.NumTrades > x.barSize {
 			overage := barRow.NumTrades - x.barSize
 
-			x.nextBar = BasicBar{IntradayRecord: *rec}
-			x.nextBar.DateTime = rec.DateTimeSC.Time()
-			x.nextBar.Open = rec.Close
+			x.nextBar = NewBasicBar(rec, rec.DateTimeSC)
 
 			barRow.TotalVolume -= overage
 			x.nextBar.TotalVolume = overage
@@ -210,10 +211,11 @@ func (x *VolumeBarAccumulator) AccumulateBar(r *scid.ScidReader) (Bar, error) {
 		if err != nil {
 			return barRow, err
 		}
-
-		if rec.Open != scid.SINGLE_TRADE_WITH_BID_ASK {
-			normalizeIndexData(rec)
-		}
+		/*
+			if sym.IsIndexData() && rec.Open != scid.SINGLE_TRADE_WITH_BID_ASK {
+				normalizeIndexData(rec)
+			}
+		*/
 
 		if rec.DateTimeSC >= x.scdt_endTime {
 			return barRow, io.EOF

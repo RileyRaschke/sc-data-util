@@ -58,7 +58,7 @@ func (x CsvBarRow) DetailString() string {
 		x.PriorLast,
 		x.PriorSettle,
 		x.TradingDate.Format("2006/01/02"),
-		x.TradingDate.Format("15:04:05"),
+		x.TradingDate.Format("15:04:05.000"),
 	)
 }
 
@@ -77,7 +77,7 @@ func (x CsvProfileBarRow) DetailProfileString() string {
 		x.PriorLast,
 		x.PriorSettle,
 		x.TradingDate.Format("2006/01/02"),
-		x.TradingDate.Format("15:04:05"),
+		x.TradingDate.Format("15:04:05.000"),
 		x.BarProfile,
 	)
 }
