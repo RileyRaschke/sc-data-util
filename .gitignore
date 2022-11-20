@@ -10,3 +10,5 @@ sc-data-util.exe.yaml
 *.err
 data/*
 local*.sh
+test_data/*
+*.txt

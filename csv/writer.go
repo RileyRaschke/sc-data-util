@@ -32,7 +32,7 @@ type CsvProfileBarRow struct {
 func (x CsvBarRow) String() string {
 	return fmt.Sprintf("%v,%v,%v,%v,%v,%v,%v,%v,%v,%v",
 		x.DateTime.Format("2006/1/02"),
-		x.DateTime.Format("15:04:05"),
+		x.DateTime.Format("15:04:05.000"),
 		fmt.Sprintf(x.FloatFmt, util.RoundToTickSize(x.Open, x.TickSize)),
 		fmt.Sprintf(x.FloatFmt, util.RoundToTickSize(x.High, x.TickSize)),
 		fmt.Sprintf(x.FloatFmt, util.RoundToTickSize(x.Low, x.TickSize)),
@@ -46,7 +46,7 @@ func (x CsvBarRow) String() string {
 func (x CsvBarRow) DetailString() string {
 	return fmt.Sprintf("%v,%v,%v,%v,%v,%v,%v,%v,%v,%v,%v,%v,%v,%v",
 		x.DateTime.Format("2006/01/02"),
-		x.DateTime.Format("15:04:05"),
+		x.DateTime.Format("15:04:05.000"),
 		fmt.Sprintf(x.FloatFmt, util.RoundToTickSize(x.Open, x.TickSize)),
 		fmt.Sprintf(x.FloatFmt, util.RoundToTickSize(x.High, x.TickSize)),
 		fmt.Sprintf(x.FloatFmt, util.RoundToTickSize(x.Low, x.TickSize)),
@@ -65,7 +65,7 @@ func (x CsvBarRow) DetailString() string {
 func (x CsvProfileBarRow) DetailProfileString() string {
 	return fmt.Sprintf("%v,%v,%v,%v,%v,%v,%v,%v,%v,%v,%v,%v,%v,%v,%v",
 		x.DateTime.Format("2006/01/02"),
-		x.DateTime.Format("15:04:05"),
+		x.DateTime.Format("15:04:05.000"),
 		fmt.Sprintf(x.FloatFmt, util.RoundToTickSize(x.Open, x.TickSize)),
 		fmt.Sprintf(x.FloatFmt, util.RoundToTickSize(x.High, x.TickSize)),
 		fmt.Sprintf(x.FloatFmt, util.RoundToTickSize(x.Low, x.TickSize)),
