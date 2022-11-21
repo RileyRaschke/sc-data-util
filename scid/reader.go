@@ -181,7 +181,7 @@ func (sr *ScidReader) SeekTo(t SCDateTimeMS) error {
 		if err != nil {
 			log.Warnf("Error peeking after seeking: %v", err)
 		}
-		log.Debugf("Begin: %10v, Middle: %10v, End %10v - Time: %v", recBegin, recMid, recEnd, r.DateTimeSC)
+		log.Tracef("Begin: %10v, Middle: %10v, End %10v - Time: %v", recBegin, recMid, recEnd, r.DateTimeSC)
 		if r.DateTimeSC == t {
 			//sr.Reader = bufio.NewReader(sr.fileHandle)
 			break

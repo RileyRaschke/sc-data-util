@@ -201,9 +201,7 @@ func (x *VolumeBarAccumulator) AccumulateBar(r *scid.ScidReader) (Bar, error) {
 		barRow = x.nextBar
 		x.nextBar = BasicBar{}
 	} else {
-		barRow = BasicBar{IntradayRecord: *rec}
-		barRow.DateTime = rec.DateTimeSC.Time()
-		barRow.Open = rec.Close
+		barRow = NewBasicBar(rec, rec.DateTimeSC)
 	}
 
 	for {
@@ -216,6 +214,13 @@ func (x *VolumeBarAccumulator) AccumulateBar(r *scid.ScidReader) (Bar, error) {
 				normalizeIndexData(rec)
 			}
 		*/
+		if rec.BidVolume > 0 && rec.AskVolume > 0 {
+			log.Debugf("Both bid and ask volume on tick: %v", rec)
+		}
+
+		if rec.NumTrades > 1 {
+			log.Debugf("More than one trade on tick: %v", rec)
+		}
 
 		if rec.DateTimeSC >= x.scdt_endTime {
 			return barRow, io.EOF
@@ -234,33 +239,29 @@ func (x *VolumeBarAccumulator) AccumulateBar(r *scid.ScidReader) (Bar, error) {
 
 			overage := barRow.TotalVolume - x.barSize
 
-			x.nextBar = BasicBar{IntradayRecord: *rec}
-			x.nextBar.DateTime = rec.DateTimeSC.Time()
-			x.nextBar.Open = rec.Close
+			x.nextBar = NewBasicBar(rec, rec.DateTimeSC)
 
 			barRow.TotalVolume -= overage
 			x.nextBar.TotalVolume = overage
 
-			if rec.BidVolume >= rec.AskVolume && rec.BidVolume >= overage {
+			if overage > rec.TotalVolume/2 {
+				barRow.NumTrades -= 1
+				x.nextBar.NumTrades += 1
+			} else if overage == rec.TotalVolume/2 {
+				barRow.NumTrades -= 1
+				//x.nextBar.NumTrades += 1
+			} else {
+				x.nextBar.NumTrades -= 1
+			}
+
+			if rec.BidVolume > rec.AskVolume {
+				log.Debugf("Bid Junk with overage %v ran on tick: %v", overage, rec)
 				barRow.BidVolume -= overage
 				x.nextBar.BidVolume = overage
-			} else if rec.AskVolume >= rec.BidVolume && rec.AskVolume >= overage {
+			} else {
+				log.Debugf("Ask Junk with overage %v ran on tick: %v", overage, rec)
 				barRow.AskVolume -= overage
 				x.nextBar.AskVolume = overage
-			} else {
-				if rec.AskVolume > rec.BidVolume {
-					barRow.BidVolume -= rec.BidVolume
-					x.nextBar.BidVolume = 0
-					overage -= rec.BidVolume
-					x.nextBar.AskVolume -= overage
-					barRow.AskVolume -= overage
-				} else {
-					barRow.AskVolume -= rec.AskVolume
-					x.nextBar.AskVolume = 0
-					overage -= rec.AskVolume
-					x.nextBar.BidVolume -= overage
-					barRow.BidVolume -= overage
-				}
 			}
 			return barRow, nil
 		}
