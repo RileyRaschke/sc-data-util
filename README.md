@@ -13,11 +13,10 @@ Some configuration is required, see usage for `--genconfig` option details.
 
 * Parse and **aggregate** Sierra Chart Intraday Data files (`*.scid`)
 * Start and End time filters
-* Volume based bar exports
 * Tick (trade) based bar exports, bundled and unbundled.
-* (coming soon) Support for automated roll/continuous bar exports across expiries
+* Volume based bar exports. Don't expect a 100% match with Sierra. May support disabled record splitting in future for better matching.
 * (coming soon) Expanded CSV columns to support flattening of trading day, prior settlement, and open interest for eased analysis
-* (coming soon) cached continuous bars (by size) across expiries, expanded on demand
+* (coming soon) Support for automated roll/continuous bar exports across expiries
 
 
 ## Library
@@ -39,27 +38,22 @@ Notes:
 OPTIONS
  -b, --barSize=value
                     Export as bars of size: [10s, 2m, 4h, 3200t, 5000v]
-                    Note: T for ticks, V for volume (like Sierra)
-                    Note: To export raw ticks (raw times and sales), don't provide this option
-
      --dailyDetail  Print daily data with added row detail
-
+     --detailProfile
+                    Print daily data with added row detail and bar profile
      --endUnixTime=value
-                    End export at unix time [1663892348]
-
-     --startUnixTime=value
-                    Export Starting at unix time
-
+                    End export at unix time [1668991430]
  -i, --stdin        Read data from STDIN, Dump to STDOUT. Disables most other
                     options.
-
- -m, --bundle       Cout a large order filling multiple limits as one bundled trade.
-
+ -m, --bundle
      --slim         Slim/Minimal CSV data
-
+     --startUnixTime=value
+                    Export Starting at unix time
  -s, --symbol=value
                     Symbol to operate on (required, unless `-i`)
-     --version      Show version (undefined)
+     --tickSize=value
+                    Round to tick size [0.001]
+     --version      Show version (v0.0.3-17-g7db6bba-dirty)
  -x, --genconfig    Write example config to "./sc-data-util.yaml"
 
 ```
