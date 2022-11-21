@@ -188,7 +188,7 @@ func (x *TickBarAccumulator) AccumulateBar(r *scid.ScidReader) (Bar, error) {
 	return barRow, nil
 }
 
-// Volume bars should never bundle...I think.
+// Volume bars should never bundle... unless there is added support for disabling split trades
 func (x *VolumeBarAccumulator) AccumulateBar(r *scid.ScidReader) (Bar, error) {
 	var barRow BasicBar
 
@@ -249,7 +249,6 @@ func (x *VolumeBarAccumulator) AccumulateBar(r *scid.ScidReader) (Bar, error) {
 				x.nextBar.NumTrades += 1
 			} else if overage == rec.TotalVolume/2 {
 				barRow.NumTrades -= 1
-				//x.nextBar.NumTrades += 1
 			} else {
 				x.nextBar.NumTrades -= 1
 			}
