@@ -15,6 +15,16 @@ const CSV_HEADER = string("Date,Time,Open,High,Low,Last,Volume,NumTrades,BidVolu
 const CSV_HEADER_DETAIL = string("Date,Time,Open,High,Low,Last,Volume,NumTrades,BidVolume,AskVolume,PriorLast,PriorSettle,TradingDate,TradingDateTime")
 const CSV_HEADER_PROFILE = string("Date,Time,Open,High,Low,Last,Volume,NumTrades,BidVolume,AskVolume,PriorLast,PriorSettle,TradingDate,TradingDateTime,BarProfile")
 
+type WriterOptions struct {
+	Writer      interface{}
+	Reader      *scid.ScidReader
+	StartTime   time.Time
+	EndTime     time.Time
+	TickSizeStr string
+	BarSize     string
+	Bundle      bool
+}
+
 type CsvBarRow struct {
 	util.BasicBar
 	PriorSettle float32
@@ -82,17 +92,17 @@ func (x CsvProfileBarRow) DetailProfileString() string {
 	)
 }
 
-func WriteBarCsv(outFile interface{}, r *scid.ScidReader, startTime time.Time, endTime time.Time, tickSizeStr string, barSize string, bundleOpt bool) error {
-	tickSize, formatStr, _ := util.ParseTickSize(tickSizeStr)
-	r.JumpTo(startTime)
-	w, err := util.WriteBuffer(outFile)
+func WriteBarCsv(opts WriterOptions) error {
+	tickSize, formatStr, _ := util.ParseTickSize(opts.TickSizeStr)
+	opts.Reader.JumpTo(opts.StartTime)
+	w, err := util.WriteBuffer(opts.Writer)
 	if err != nil {
-		log.Errorf("Failed to open \"%v\" for writing with error: %v", outFile, err)
+		log.Errorf("Failed to open \"%v\" for writing with error: %v", opts.Writer, err)
 	}
 	w.WriteString(CSV_HEADER + "\n")
-	ba := util.NewBarAccumulator(startTime, endTime, barSize, bundleOpt, false)
+	ba := util.NewBarAccumulator(opts.StartTime, opts.EndTime, opts.BarSize, opts.Bundle, false)
 	for {
-		bar, err := ba.AccumulateBar(r)
+		bar, err := ba.AccumulateBar(opts.Reader)
 		barRow := CsvBarRow{BasicBar: bar.(util.BasicBar), TickSize: tickSize, FloatFmt: formatStr}
 		if barRow.TotalVolume != 0 {
 			w.WriteString(barRow.String() + "\n")
@@ -105,18 +115,18 @@ func WriteBarCsv(outFile interface{}, r *scid.ScidReader, startTime time.Time, e
 	return nil
 }
 
-func WriteBarDetailCsv(outFile interface{}, r *scid.ScidReader, startTime time.Time, endTime time.Time, tickSizeStr string, barSize string, bundleOpt bool) error {
-	tickSize, formatStr, _ := util.ParseTickSize(tickSizeStr)
-	r.JumpTo(startTime)
-	w, err := util.WriteBuffer(outFile)
+func WriteBarDetailCsv(opts WriterOptions) error {
+	tickSize, formatStr, _ := util.ParseTickSize(opts.TickSizeStr)
+	opts.Reader.JumpTo(opts.StartTime)
+	w, err := util.WriteBuffer(opts.Writer)
 	log.Info("Writing detail csv")
 	if err != nil {
-		log.Errorf("Failed to open \"%v\" for writing with error: %v", outFile, err)
+		log.Errorf("Failed to open \"%v\" for writing with error: %v", opts.Writer, err)
 	}
 	w.WriteString(CSV_HEADER_DETAIL + "\n")
-	ba := util.NewBarAccumulator(startTime, endTime, barSize, bundleOpt, false)
+	ba := util.NewBarAccumulator(opts.StartTime, opts.EndTime, opts.BarSize, opts.Bundle, false)
 	for {
-		bar, err := ba.AccumulateBar(r)
+		bar, err := ba.AccumulateBar(opts.Reader)
 		barRow := CsvBarRow{BasicBar: bar.(util.BasicBar), TickSize: tickSize, FloatFmt: formatStr}
 		if barRow.TotalVolume != 0 {
 			barRow.TradingDate = barRow.DateTime.Add(time.Hour * 7)
@@ -130,18 +140,19 @@ func WriteBarDetailCsv(outFile interface{}, r *scid.ScidReader, startTime time.T
 	return nil
 }
 
-func WriteBarDetailWithProfileCsv(outFile interface{}, r *scid.ScidReader, startTime time.Time, endTime time.Time, tickSizeStr string, barSize string, bundleOpt bool) error {
-	tickSize, formatStr, _ := util.ParseTickSize(tickSizeStr)
-	r.JumpTo(startTime)
-	w, err := util.WriteBuffer(outFile)
+func WriteBarDetailWithProfileCsv(opts WriterOptions) error {
+	tickSize, formatStr, _ := util.ParseTickSize(opts.TickSizeStr)
+	opts.Reader.JumpTo(opts.StartTime)
+	w, err := util.WriteBuffer(opts.Writer)
 	log.Info("Writing detail csv with profile")
 	if err != nil {
-		log.Errorf("Failed to open \"%v\" for writing with error: %v", outFile, err)
+		log.Errorf("Failed to open \"%v\" for writing with error: %v", opts.Writer, err)
+		return err
 	}
 	w.WriteString(CSV_HEADER_PROFILE + "\n")
-	ba := util.NewBarProfileAccumulator(startTime, endTime, barSize, bundleOpt, true)
+	ba := util.NewBarProfileAccumulator(opts.StartTime, opts.EndTime, opts.BarSize, opts.Bundle, true)
 	for {
-		bar, pro, err := ba.AccumulateProfile(r)
+		bar, pro, err := ba.AccumulateProfile(opts.Reader)
 		br := CsvBarRow{BasicBar: bar.(util.BasicBar), TickSize: tickSize, FloatFmt: formatStr}
 		barRow := CsvProfileBarRow{CsvBarRow: br, BarProfile: pro}
 		if barRow.TotalVolume != 0 {
@@ -156,16 +167,17 @@ func WriteBarDetailWithProfileCsv(outFile interface{}, r *scid.ScidReader, start
 	return nil
 }
 
-func WriteRawTicks(outFile interface{}, r *scid.ScidReader, startTime time.Time, endTime time.Time, tickSizeStr string, aggregation uint) {
-	r.JumpTo(startTime)
-	w, err := util.WriteBuffer(outFile)
-	scdt_endTime := scid.NewSCDateTimeMS(endTime)
+func WriteRawTicks(opts WriterOptions) error {
+	opts.Reader.JumpTo(opts.StartTime)
+	w, err := util.WriteBuffer(opts.Writer)
+	scdt_endTime := scid.NewSCDateTimeMS(opts.EndTime)
 	if err != nil {
-		log.Errorf("Failed to open \"%v\" for writing with error: %v", outFile, err)
+		log.Errorf("Failed to open \"%v\" for writing with error: %v", opts.Writer, err)
+		return err
 	}
 	w.WriteString(CSV_HEADER_RAW + "\n")
 	for {
-		rec, err := r.NextRecord()
+		rec, err := opts.Reader.NextRecord()
 		if err == io.EOF {
 			break
 		}
@@ -180,4 +192,5 @@ func WriteRawTicks(outFile interface{}, r *scid.ScidReader, startTime time.Time,
 		w.WriteString(fmt.Sprintf("%s\n", rec))
 	}
 	w.Flush()
+	return nil
 }
